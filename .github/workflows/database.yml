@@ -1,0 +1,140 @@
+---
+name: Backup Application Database
+
+on:
+  workflow_call:
+
+env:
+  BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+  OBJECT: ${{ secrets.AWS_S3_OBJECT }}
+  RETAIN_BACKUPS: ${{ secrets.DATABASE_BACKUP_RETAIN }}
+
+jobs:
+  backup:
+    name: Backup Database
+    runs-on: ubuntu-22.04
+    container: python:3.8
+    steps:
+      - name: Set runtime variables
+        id: vars
+        run: |
+          echo "timestamp=$(date +'%d-%m-%Y-%H%M')" >> "$GITHUB_ENV"
+
+      - name: Install system packages
+        run: |
+          apt-get update --assume-yes
+          apt-get install rsync --assume-yes
+
+      - name: Install AWS CLI
+        run: |
+          pip install awscli
+
+      - name: Load SSH key
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SERVER_SECRET_KEY }}
+
+      - name: Dump MySQL database
+        uses: appleboy/ssh-action@v0.1.10
+        env:
+          TIMESTAMP: ${{ env.timestamp }}
+        with:
+          host: ${{ secrets.SERVER_HOSTNAME }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SECRET_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          envs: TIMESTAMP
+          script: |
+            mkdir --parent /srv/rsync/backups
+
+            mysqldump \
+            --quick \
+            --host=${{ secrets.MYSQL_HOST }} \
+            --port=${{ secrets.MYSQL_PORT }} \
+            --user=${{ secrets.MYSQL_USER }} \
+            --password=${{ secrets.MYSQL_PASS }} \
+            --databases ${{ secrets.MYSQL_DATABASE }} > /srv/rsync/backups/$TIMESTAMP-mysql.sql
+
+            cd /srv/rsync/backups && gzip $TIMESTAMP-mysql.sql
+
+      - name: Transport database
+        env:
+          TIMESTAMP: ${{ env.timestamp }}
+        run: |
+          mkdir --parents /srv/rsync/backups 
+
+          rsync \
+          --delete \
+          --verbose \
+          --archive \
+          --checksum \
+          --compress \
+          --remove-source-files \
+          --rsh "ssh -o StrictHostKeyChecking=no" \
+          ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOSTNAME }}:/srv/rsync/backups/$TIMESTAMP-mysql.sql.gz \
+          /srv/rsync/backups/${{ env.timestamp }}-mysql.sql.gz
+
+      - name: Configure AWS credentials
+        run: |
+          mkdir --parents ~/.aws
+          echo "[default]" > ~/.aws/credentials
+          echo "aws_access_key_id = ${{ secrets.AWS_ACCESS_KEY_ID }}" >> ~/.aws/credentials
+          echo "aws_secret_access_key = ${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> ~/.aws/credentials
+          echo "[default]" > ~/.aws/config
+          echo "region = ${{ secrets.AWS_REGION }}" >> ~/.aws/config
+
+      - name: Upload backup to S3 bucket
+        run: >
+          aws s3 cp 
+          /srv/rsync/backups/${{ env.timestamp }}-mysql.sql.gz
+          s3://$BUCKET/$OBJECT/${{ env.timestamp }}-mysql.sql.gz 
+          --endpoint-url ${{ secrets.AWS_S3_ENDPOINT }}
+
+      - name: List backups in S3 bucket
+        id: list-backups
+        run: >
+          BACKUPS=$(aws s3 ls s3://$BUCKET/$OBJECT \
+            --recursive \
+            --endpoint-url ${{ secrets.AWS_S3_ENDPOINT }} \
+            | awk '{$1=$2=$3=""; print $0}' \
+            | sed 's/^[ \t]*//' \
+          )
+          echo "::set-output name=backups::${BACKUPS}"
+
+      - name: Delete excess backups in S3 bucket
+        run: >
+          counter=0
+
+          files=$(aws s3api list-objects \
+            --bucket "$BUCKET" \
+            --prefix "$OBJECT/" \
+            --query 'Contents[?ends_with(Key, `'-files.zip'`)].[Key, LastModified]' \
+            --output text \
+            --endpoint-url ${{ secrets.AWS_S3_ENDPOINT }} \
+            | sort -k2 -r \
+            | awk '{print $1}' \
+          )
+
+          for file in $files; do
+              counter=$((counter + 1))
+              if [ $counter -le $RETAIN_BACKUPS ]; then
+                continue
+              fi
+              aws s3 rm s3://$BUCKET/$file --endpoint-url ${{ secrets.AWS_S3_ENDPOINT }};
+          done
+
+      - name: Discord success notification
+        uses: Ilshidur/action-discord@master
+        if: success()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: "🟢 Database backup completed at: ${{ env.timestamp }}."
+
+      - name: Discord failure notification
+        uses: Ilshidur/action-discord@master
+        if: failure()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: "🛑 Database backup failed at: ${{ env.timestamp }}."
