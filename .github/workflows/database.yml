@@ -18,7 +18,9 @@ jobs:
       - name: Set runtime variables
         id: vars
         run: |
-          echo "timestamp=$(date +'%d-%m-%Y-%H%M')" >> "$GITHUB_ENV"
+          echo "timestamp=$(date -d@"$(( \
+          $(date +%s) + (5 * 3600) + (30 * 60) ))" \
+          +'%d-%m-%Y-%H%M')" >> "$GITHUB_ENV"
 
       - name: Install system packages
         run: |
@@ -29,8 +31,17 @@ jobs:
         run: |
           pip install awscli
 
+      - name: Manually Set SSH key
+        if: ${{ env.ACT }}
+        run: |
+          mkdir --parents ~/.ssh
+          touch ~/.ssh/id_rsa
+          echo "${{ secrets.SERVER_SECRET_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
       - name: Load SSH key
         uses: webfactory/ssh-agent@v0.8.0
+        if: ${{ !env.ACT }}
         with:
           ssh-private-key: ${{ secrets.SERVER_SECRET_KEY }}
 
@@ -109,7 +120,7 @@ jobs:
           files=$(aws s3api list-objects \
             --bucket "$BUCKET" \
             --prefix "$OBJECT/" \
-            --query 'Contents[?ends_with(Key, `'-files.zip'`)].[Key, LastModified]' \
+            --query 'Contents[?ends_with(Key, `'-mysql.sql.gz'`)].[Key, LastModified]' \
             --output text \
             --endpoint-url ${{ secrets.AWS_S3_ENDPOINT }} \
             | sort -k2 -r \
