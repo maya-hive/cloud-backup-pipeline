@@ -60,6 +60,7 @@ jobs:
 
             mysqldump \
             --quick \
+            --single-transaction \
             --host=${{ secrets.MYSQL_HOST }} \
             --port=${{ secrets.MYSQL_PORT }} \
             --user=${{ secrets.MYSQL_USER }} \
