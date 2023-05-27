@@ -74,5 +74,5 @@ jobs:
 Use nektos/act to run GitHub workflows locally:
 
 ```bash
-act --secret-file .env workflow_dispatch -v
+act --secret-file .env workflow_call -v
 ```
