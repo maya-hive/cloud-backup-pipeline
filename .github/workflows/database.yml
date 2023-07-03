@@ -15,6 +15,9 @@ jobs:
     runs-on: ubuntu-22.04
     container: python:3.8
     steps:
+      - run: |
+          echo "${{ inputs.SERVER_HOSTNAME }}"
+
       - name: Set runtime variables
         id: vars
         run: |
