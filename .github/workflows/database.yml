@@ -7,43 +7,48 @@ on:
       DATABASE_BACKUP_RETAIN:
         type: string
         required: true
-      FILE_BACKUP_RETAIN:
-        type: string
-        required: true
+
       AWS_REGION:
         type: string
         required: true
+
       AWS_S3_BUCKET:
         type: string
         required: true
+
       AWS_S3_OBJECT:
         type: string
         required: true
+
       AWS_S3_ENDPOINT:
         type: string
         required: true
+
       SERVER_PORT:
         type: string
         required: true
+
       SERVER_HOSTNAME:
         type: string
         required: true
+
       SERVER_USERNAME:
         type: string
         required: true
+
       MYSQL_HOST:
         type: string
         required: true
+
       MYSQL_PORT:
         type: string
         required: true
+
       MYSQL_USER:
         type: string
         required: true
+
       MYSQL_DATABASE:
-        type: string
-        required: true
-      FILE_BACKUP_APPLICATION_PATH:
         type: string
         required: true
 

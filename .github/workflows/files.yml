@@ -3,6 +3,42 @@ name: Backup Application Files
 
 on:
   workflow_call:
+    inputs:
+      FILE_BACKUP_RETAIN:
+        type: string
+        required: true
+
+      FILE_BACKUP_APPLICATION_PATH:
+        type: string
+        required: true
+
+      AWS_REGION:
+        type: string
+        required: true
+
+      AWS_S3_BUCKET:
+        type: string
+        required: true
+
+      AWS_S3_OBJECT:
+        type: string
+        required: true
+
+      AWS_S3_ENDPOINT:
+        type: string
+        required: true
+
+      SERVER_PORT:
+        type: string
+        required: true
+
+      SERVER_HOSTNAME:
+        type: string
+        required: true
+
+      SERVER_USERNAME:
+        type: string
+        required: true
 
 jobs:
   backup:
@@ -45,15 +81,15 @@ jobs:
         env:
           TIMESTAMP: ${{ env.timestamp }}
         with:
-          host: ${{ secrets.SERVER_HOSTNAME }}
-          username: ${{ secrets.SERVER_USERNAME }}
+          host: ${{ inputs.SERVER_HOSTNAME }}
+          username: ${{ inputs.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SECRET_KEY }}
-          port: ${{ secrets.SERVER_PORT }}
+          port: ${{ inputs.SERVER_PORT }}
           envs: TIMESTAMP
           script: |
-            export {{ env.FILE_BACKUP_APPLICATION_PATH }}=${{ env.FILE_BACKUP_APPLICATION_PATH }}
+            export {{ env.FILE_BACKUP_APPLICATION_PATH }}=${{ inputs.FILE_BACKUP_APPLICATION_PATH }}
             mkdir --parent /srv/rsync/backups
-            cd ${{ env.FILE_BACKUP_APPLICATION_PATH }} && zip --recurse-paths /srv/rsync/backups/$TIMESTAMP-files.zip .
+            cd ${{ inputs.FILE_BACKUP_APPLICATION_PATH }} && zip --recurse-paths /srv/rsync/backups/$TIMESTAMP-files.zip .
 
       - name: Transport files
         env:
@@ -66,7 +102,7 @@ jobs:
           --delete
           --remove-source-files
           --rsh "ssh -o StrictHostKeyChecking=no"
-          ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOSTNAME }}:/srv/rsync/backups/$TIMESTAMP-files.zip
+          ${{ inputs.SERVER_USERNAME }}@${{ inputs.SERVER_HOSTNAME }}:/srv/rsync/backups/$TIMESTAMP-files.zip
           /srv/rsync/backups/${{ env.timestamp }}-files.zip
 
       - name: Configure AWS credentials
@@ -76,35 +112,35 @@ jobs:
           echo "aws_access_key_id = ${{ secrets.AWS_ACCESS_KEY_ID }}" >> ~/.aws/credentials
           echo "aws_secret_access_key = ${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> ~/.aws/credentials
           echo "[default]" > ~/.aws/config
-          echo "region = ${{ secrets.AWS_REGION }}" >> ~/.aws/config
+          echo "region = ${{ inputs.AWS_REGION }}" >> ~/.aws/config
 
       - name: Upload backup to S3 bucket
         run: >
           aws s3 cp 
           /srv/rsync/backups/${{ env.timestamp }}-files.zip 
-          s3://${{ env.AWS_S3_BUCKET }}/${{ env.AWS_S3_OBJECT }}/${{ env.timestamp }}-files.zip 
-          --endpoint-url ${{ secrets.AWS_S3_ENDPOINT }}
+          s3://${{ inputs.AWS_S3_BUCKET }}/${{ inputs.AWS_S3_OBJECT }}/${{ env.timestamp }}-files.zip 
+          --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }}
 
       - name: Delete excess backups in S3 bucket
         run: >
           counter=0
 
           files=$(aws s3api list-objects \
-            --bucket "${{ env.AWS_S3_BUCKET }}" \
-            --prefix "${{ env.AWS_S3_OBJECT }}/" \
+            --bucket "${{ inputs.AWS_S3_BUCKET }}" \
+            --prefix "${{ inputs.AWS_S3_OBJECT }}/" \
             --query 'Contents[?ends_with(Key, `'-files.zip'`)].[Key, LastModified]' \
             --output text \
-            --endpoint-url ${{ secrets.AWS_S3_ENDPOINT }} \
+            --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }} \
             | sort -k2 -r \
             | awk '{print $1}' \
           )
 
           for file in $files; do
               counter=$((counter + 1))
-              if [ $counter -le ${{ env.FILE_BACKUP_RETAIN }} ]; then
+              if [ $counter -le ${{ inputs.FILE_BACKUP_RETAIN }} ]; then
                 continue
               fi
-              aws s3 rm s3://${{ env.AWS_S3_BUCKET }}/$file --endpoint-url ${{ secrets.AWS_S3_ENDPOINT }};
+              aws s3 rm s3://${{ inputs.AWS_S3_BUCKET }}/$file --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }};
           done
 
       - name: Discord success notification
