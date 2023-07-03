@@ -53,7 +53,7 @@ on:
 
 jobs:
   vars:
-    name: Setup Dynamic Environment Variables
+    name: Setup Environment Vars
     runs-on: ubuntu-latest
     outputs:
       DATABASE_BACKUP_RETAIN: ${{ steps.set.outputs.DATABASE_BACKUP_RETAIN }}
@@ -69,7 +69,7 @@ jobs:
       MYSQL_USER: ${{ steps.set.outputs.MYSQL_USER }}
       MYSQL_DATABASE: ${{ steps.set.outputs.MYSQL_DATABASE }}
     steps:
-      - name: Set Environment Variables
+      - name: Assign Vars
         id: set
         run: |
           echo "DATABASE_BACKUP_RETAIN=${{ vars.DATABASE_BACKUP_RETAIN }}" >> $GITHUB_OUTPUT
@@ -118,7 +118,7 @@ on:
 
 jobs:
   vars:
-    name: Setup Dynamic Environment Variables
+    name: Setup Environment Vars
     runs-on: ubuntu-latest
     outputs:
       FILE_BACKUP_RETAIN: ${{ steps.set.outputs.FILE_BACKUP_RETAIN }}
@@ -131,7 +131,7 @@ jobs:
       SERVER_PORT: ${{ steps.set.outputs.SERVER_PORT }}
       SERVER_USERNAME: ${{ steps.set.outputs.SERVER_USERNAME }}
     steps:
-      - name: Set Environment Variables
+      - name: Assign Vars
         id: set
         run: |
           echo "FILE_BACKUP_RETAIN=${{ vars.FILE_BACKUP_RETAIN }}" >> $GITHUB_OUTPUT
