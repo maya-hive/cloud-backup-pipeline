@@ -126,7 +126,7 @@ jobs:
       AWS_REGION: ${{ steps.set.outputs.AWS_REGION }}
       AWS_S3_ENDPOINT: ${{ steps.set.outputs.AWS_S3_ENDPOINT }}
       AWS_S3_BUCKET: ${{ steps.set.outputs.AWS_S3_BUCKET }}
-      AWS_S3_OBJECT: ${{ steps.set.AWS_S3_OBJECT }}
+      AWS_S3_OBJECT: ${{ steps.set.outputs.AWS_S3_OBJECT }}
       SERVER_HOSTNAME: ${{ steps.set.outputs.SERVER_HOSTNAME }}
       SERVER_PORT: ${{ steps.set.outputs.SERVER_PORT }}
       SERVER_USERNAME: ${{ steps.set.outputs.SERVER_USERNAME }}
