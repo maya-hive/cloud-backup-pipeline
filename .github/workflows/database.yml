@@ -58,6 +58,9 @@ jobs:
     runs-on: ubuntu-22.04
     container: python:3.8
     steps:
+      - name: debug
+        run: echo "${{ inputs.AWS_S3_OBJECT }}"
+
       - name: Set runtime variables
         id: vars
         run: |
@@ -145,17 +148,6 @@ jobs:
           s3://${{ inputs.AWS_S3_BUCKET }}/${{ inputs.AWS_S3_OBJECT }}/${{ env.timestamp }}-mysql.sql.gz 
           --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }}
 
-      - name: List backups in S3 bucket
-        id: list-backups
-        run: >
-          BACKUPS=$(aws s3 ls s3://${{ inputs.AWS_S3_BUCKET }}/${{ inputs.AWS_S3_OBJECT }} \
-            --recursive \
-            --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }} \
-            | awk '{$1=$2=$3=""; print $0}' \
-            | sed 's/^[ \t]*//' \
-          )
-          echo "::set-output name=backups::${BACKUPS}"
-
       - name: Delete excess backups in S3 bucket
         run: >
           counter=0
@@ -169,8 +161,6 @@ jobs:
             | sort -k2 -r \
             | awk '{print $1}' \
           )
-
-          echo $files
 
           for file in $files; do
               counter=$((counter + 1))
