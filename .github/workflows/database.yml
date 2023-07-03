@@ -3,6 +3,11 @@ name: Backup Application Database
 
 on:
   workflow_call:
+    inputs:
+      SERVER_HOSTNAME:
+        type: number
+        description: "The hostname of the server"
+        required: true
 
 jobs:
   backup:
