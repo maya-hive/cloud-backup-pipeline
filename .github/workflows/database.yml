@@ -170,12 +170,14 @@ jobs:
             | awk '{print $1}' \
           )
 
+          echo $files
+
           for file in $files; do
+              counter=$((counter + 1))
               if [ $counter -le ${{ inputs.DATABASE_BACKUP_RETAIN }} ]; then
                 continue
               fi
               aws s3 rm s3://${{ inputs.AWS_S3_BUCKET }}/$file --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }};
-              counter=$((counter + 1))
           done
 
       - name: Discord success notification
