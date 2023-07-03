@@ -50,10 +50,10 @@ jobs:
         env:
           TIMESTAMP: ${{ env.timestamp }}
         with:
-          host: ${{ env.SERVER_HOSTNAME }}
+          host: ${{ inputs.SERVER_HOSTNAME }}
           username: ${{ env.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SECRET_KEY }}
-          port: ${{ env.SERVER_PORT }}
+          port: ${{ inputs.SERVER_PORT }}
           envs: TIMESTAMP
           script: |
             mkdir --parent /srv/rsync/backups
