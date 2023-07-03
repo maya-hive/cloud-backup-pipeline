@@ -5,7 +5,7 @@ on:
   workflow_call:
     inputs:
       SERVER_HOSTNAME:
-        type: number
+        type: string
         description: "The hostname of the server"
         required: true
 
