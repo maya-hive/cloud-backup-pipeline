@@ -4,12 +4,6 @@ name: Backup Application Files
 on:
   workflow_call:
 
-env:
-  BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-  OBJECT: ${{ secrets.AWS_S3_OBJECT }}
-  RETAIN_BACKUPS: ${{ secrets.FILE_BACKUP_RETAIN }}
-  APPLICATION_PATH: ${{ secrets.FILE_BACKUP_APPLICATION_PATH }}
-
 jobs:
   backup:
     name: Backup Files
@@ -55,11 +49,11 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SECRET_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          envs: APPLICATION_PATH, TIMESTAMP
+          envs: TIMESTAMP
           script: |
-            export APPLICATION_PATH=$APPLICATION_PATH
+            export {{ env.FILE_BACKUP_APPLICATION_PATH }}=${{ env.FILE_BACKUP_APPLICATION_PATH }}
             mkdir --parent /srv/rsync/backups
-            cd $APPLICATION_PATH && zip --recurse-paths /srv/rsync/backups/$TIMESTAMP-files.zip .
+            cd ${{ env.FILE_BACKUP_APPLICATION_PATH }} && zip --recurse-paths /srv/rsync/backups/$TIMESTAMP-files.zip .
 
       - name: Transport files
         env:
@@ -88,7 +82,7 @@ jobs:
         run: >
           aws s3 cp 
           /srv/rsync/backups/${{ env.timestamp }}-files.zip 
-          s3://$BUCKET/$OBJECT/${{ env.timestamp }}-files.zip 
+          s3://${{ env.AWS_S3_BUCKET }}/${{ env.AWS_S3_OBJECT }}/${{ env.timestamp }}-files.zip 
           --endpoint-url ${{ secrets.AWS_S3_ENDPOINT }}
 
       - name: Delete excess backups in S3 bucket
@@ -96,8 +90,8 @@ jobs:
           counter=0
 
           files=$(aws s3api list-objects \
-            --bucket "$BUCKET" \
-            --prefix "$OBJECT/" \
+            --bucket "${{ env.AWS_S3_BUCKET }}" \
+            --prefix "${{ env.AWS_S3_OBJECT }}/" \
             --query 'Contents[?ends_with(Key, `'-files.zip'`)].[Key, LastModified]' \
             --output text \
             --endpoint-url ${{ secrets.AWS_S3_ENDPOINT }} \
@@ -107,10 +101,10 @@ jobs:
 
           for file in $files; do
               counter=$((counter + 1))
-              if [ $counter -le $RETAIN_BACKUPS ]; then
+              if [ $counter -le ${{ env.FILE_BACKUP_RETAIN }} ]; then
                 continue
               fi
-              aws s3 rm s3://$BUCKET/$file --endpoint-url ${{ secrets.AWS_S3_ENDPOINT }};
+              aws s3 rm s3://${{ env.AWS_S3_BUCKET }}/$file --endpoint-url ${{ secrets.AWS_S3_ENDPOINT }};
           done
 
       - name: Discord success notification
