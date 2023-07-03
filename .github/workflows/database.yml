@@ -24,11 +24,11 @@ on:
         type: string
         required: true
 
-      SERVER_PORT:
+      SERVER_HOSTNAME:
         type: string
         required: true
 
-      SERVER_HOSTNAME:
+      SERVER_PORT:
         type: string
         required: true
 
@@ -58,9 +58,6 @@ jobs:
     runs-on: ubuntu-22.04
     container: python:3.8
     steps:
-      - name: debug
-        run: echo "${{ inputs.AWS_S3_OBJECT }}"
-
       - name: Set runtime variables
         id: vars
         run: |
