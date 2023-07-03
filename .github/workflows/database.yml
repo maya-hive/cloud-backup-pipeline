@@ -45,10 +45,10 @@ jobs:
         env:
           TIMESTAMP: ${{ env.timestamp }}
         with:
-          host: ${{ env.SERVER_HOSTNAME }}
-          username: ${{ env.SERVER_USERNAME }}
+          host: ${{ inputs.SERVER_HOSTNAME }}
+          username: ${{ inputs.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SECRET_KEY }}
-          port: ${{ env.SERVER_PORT }}
+          port: ${{ inputs.SERVER_PORT }}
           envs: TIMESTAMP
           script: |
             mkdir --parent /srv/rsync/backups
@@ -56,11 +56,11 @@ jobs:
             mysqldump \
             --quick \
             --single-transaction \
-            --host=${{ env.MYSQL_HOST }} \
-            --port=${{ env.MYSQL_PORT }} \
-            --user=${{ env.MYSQL_USER }} \
+            --host=${{ inputs.MYSQL_HOST }} \
+            --port=${{ inputs.MYSQL_PORT }} \
+            --user=${{ inputs.MYSQL_USER }} \
             --password=${{ secrets.MYSQL_PASS }} \
-            --databases ${{ env.MYSQL_DATABASE }} > /srv/rsync/backups/$TIMESTAMP-mysql.sql
+            --databases ${{ inputs.MYSQL_DATABASE }} > /srv/rsync/backups/$TIMESTAMP-mysql.sql
 
             cd /srv/rsync/backups && gzip $TIMESTAMP-mysql.sql
 
@@ -78,7 +78,7 @@ jobs:
           --compress \
           --remove-source-files \
           --rsh "ssh -o StrictHostKeyChecking=no" \
-          ${{ env.SERVER_USERNAME }}@${{ env.SERVER_HOSTNAME }}:/srv/rsync/backups/$TIMESTAMP-mysql.sql.gz \
+          ${{ inputs.SERVER_USERNAME }}@${{ inputs.SERVER_HOSTNAME }}:/srv/rsync/backups/$TIMESTAMP-mysql.sql.gz \
           /srv/rsync/backups/${{ env.timestamp }}-mysql.sql.gz
 
       - name: Configure AWS credentials
@@ -94,15 +94,15 @@ jobs:
         run: >
           aws s3 cp 
           /srv/rsync/backups/${{ env.timestamp }}-mysql.sql.gz
-          s3://${{ env.AWS_S3_BUCKET }}/${{ env.AWS_S3_OBJECT }}/${{ env.timestamp }}-mysql.sql.gz 
-          --endpoint-url ${{ env.AWS_S3_ENDPOINT }}
+          s3://${{ inputs.AWS_S3_BUCKET }}/${{ inputs.AWS_S3_OBJECT }}/${{ env.timestamp }}-mysql.sql.gz 
+          --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }}
 
       - name: List backups in S3 bucket
         id: list-backups
         run: >
-          BACKUPS=$(aws s3 ls s3://${{ env.AWS_S3_BUCKET }}/${{ env.AWS_S3_OBJECT }} \
+          BACKUPS=$(aws s3 ls s3://${{ inputs.AWS_S3_BUCKET }}/${{ inputs.AWS_S3_OBJECT }} \
             --recursive \
-            --endpoint-url ${{ env.AWS_S3_ENDPOINT }} \
+            --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }} \
             | awk '{$1=$2=$3=""; print $0}' \
             | sed 's/^[ \t]*//' \
           )
@@ -113,21 +113,21 @@ jobs:
           counter=0
 
           files=$(aws s3api list-objects \
-            --bucket "${{ env.AWS_S3_BUCKET }}" \
-            --prefix "${{ env.AWS_S3_OBJECT }}/" \
+            --bucket "${{ inputs.AWS_S3_BUCKET }}" \
+            --prefix "${{ inputs.AWS_S3_OBJECT }}/" \
             --query 'Contents[?ends_with(Key, `'-mysql.sql.gz'`)].[Key, LastModified]' \
             --output text \
-            --endpoint-url ${{ env.AWS_S3_ENDPOINT }} \
+            --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }} \
             | sort -k2 -r \
             | awk '{print $1}' \
           )
 
           for file in $files; do
               counter=$((counter + 1))
-              if [ $counter -le ${{ env.DATABASE_BACKUP_RETAIN }} ]; then
+              if [ $counter -le ${{ inputs.DATABASE_BACKUP_RETAIN }} ]; then
                 continue
               fi
-              aws s3 rm s3://${{ env.AWS_S3_BUCKET }}/$file --endpoint-url ${{ env.AWS_S3_ENDPOINT }};
+              aws s3 rm s3://${{ inputs.AWS_S3_BUCKET }}/$file --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }};
           done
 
       - name: Discord success notification
