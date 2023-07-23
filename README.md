@@ -1,6 +1,15 @@
 # Cloud Backup Pipeline
 
-This pipeline uses AWS compatible S3 storage to store application database and file backups. The backup pipeline retains only a specified count of backups to prevent storage overflow.
+This pipeline uses AWS-compatible S3 storage to store application databases and file backups. The backup pipeline retains only a specified count of backups to prevent storage overflow.
+
+### Configuration Guide
+
+| Requirement                       | Calculation Logic                                              | Usage                                         |
+| --------------------------------- | -------------------------------------------------------------- | --------------------------------------------- |
+| **Run**: Every 1 Day at 1.00 AM   | Format the cron job to run twice a day                         | `0 1 * * *`                                   |
+| **Keep**: 2 Days                  | Multiply the daily `Run` count with the number of days to keep | `DATABASE_BACKUP_RETAIN/FILE_BACKUP_RETAIN=4` |
+
+Summary: The above will keep running every day at 1.00 AM and will retain up to 2 days of backups for us to roll back.
 
 ### Required GitHub Repository Action Secrets
 
