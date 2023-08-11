@@ -213,8 +213,16 @@ jobs:
             --user ${{ inputs.NOTIFY_MYSQL_USER }} \
             -p${{ secrets.NOTIFY_MYSQL_PASS }} \
             ${{ inputs.NOTIFY_MYSQL_DATABASE }} \
-            --execute "INSERT INTO tasks (project_name, backup_type, backup_status, run_url, bucket, object, path) \
-            VALUES ('${{ github.repository }}', 'db', 'success', '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}', '${{ inputs.AWS_S3_BUCKET }}', '${{ inputs.AWS_S3_OBJECT }}', '${{ env.timestamp }}-mysql.sql.gz');"
+            --execute "INSERT INTO tasks (name, type, status, url, bucket, object, path) \
+            VALUES ( \
+              '${{ github.repository }}', \
+              'db', \
+              1, \
+              '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}', \
+              '${{ inputs.AWS_S3_BUCKET }}', \
+              '${{ inputs.AWS_S3_OBJECT }}', \
+              '${{ env.timestamp }}-mysql.sql.gz' \
+            );"
 
       - name: Failure Notification
         uses: appleboy/ssh-action@v0.1.10
@@ -234,5 +242,13 @@ jobs:
             --user ${{ inputs.NOTIFY_MYSQL_USER }} \
             -p${{ secrets.NOTIFY_MYSQL_PASS }} \
             ${{ inputs.NOTIFY_MYSQL_DATABASE }} \
-            --execute "INSERT INTO tasks (project_name, backup_type, backup_status, run_url, bucket, object, path) \
-            VALUES ('${{ github.repository }}', 'db', 'failure', '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}', '${{ inputs.AWS_S3_BUCKET }}', '${{ inputs.AWS_S3_OBJECT }}', '${{ env.timestamp }}-mysql.sql.gz');"
+            --execute "INSERT INTO tasks (name, type, status, url, bucket, object, path) \
+            VALUES ( \
+              '${{ github.repository }}', \
+              'db', \
+              0, \
+              '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}', \
+              '${{ inputs.AWS_S3_BUCKET }}', \
+              '${{ inputs.AWS_S3_OBJECT }}', \
+              '${{ env.timestamp }}-mysql.sql.gz' \
+            );"
