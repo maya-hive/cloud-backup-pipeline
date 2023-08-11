@@ -4,10 +4,10 @@ This pipeline uses AWS-compatible S3 storage to store application databases and 
 
 ### Configuration Guide
 
-| Requirement                       | Calculation Logic                                              | Usage                                         |
-| --------------------------------- | -------------------------------------------------------------- | --------------------------------------------- |
-| **Run**: Every 1 Day at 1.00 AM   | Format the cron job to run twice a day                         | `0 1 * * *`                                   |
-| **Keep**: 2 Days                  | Multiply the daily `Run` count with the number of days to keep | `DATABASE_BACKUP_RETAIN/FILE_BACKUP_RETAIN=4` |
+| Requirement                     | Calculation Logic                                              | Usage                                         |
+| ------------------------------- | -------------------------------------------------------------- | --------------------------------------------- |
+| **Run**: Every 1 Day at 1.00 AM | Format the cron job to run twice a day                         | `0 1 * * *`                                   |
+| **Keep**: 2 Days                | Multiply the daily `Run` count with the number of days to keep | `DATABASE_BACKUP_RETAIN/FILE_BACKUP_RETAIN=4` |
 
 Summary: The above will keep running every day at 1.00 AM and will retain up to 2 days of backups for us to roll back.
 
@@ -77,6 +77,13 @@ jobs:
       MYSQL_PORT: ${{ steps.set.outputs.MYSQL_PORT }}
       MYSQL_USER: ${{ steps.set.outputs.MYSQL_USER }}
       MYSQL_DATABASE: ${{ steps.set.outputs.MYSQL_DATABASE }}
+      NOTIFY_SERVER_HOSTNAME: ${{ steps.set.outputs.NOTIFY_SERVER_HOSTNAME }}
+      NOTIFY_SERVER_PORT: ${{ steps.set.outputs.NOTIFY_SERVER_PORT }}
+      NOTIFY_SERVER_USERNAME: ${{ steps.set.outputs.NOTIFY_SERVER_USERNAME }}
+      NOTIFY_MYSQL_HOST: ${{ steps.set.outputs.NOTIFY_MYSQL_HOST }}
+      NOTIFY_MYSQL_PORT: ${{ steps.set.outputs.NOTIFY_MYSQL_PORT }}
+      NOTIFY_MYSQL_USER: ${{ steps.set.outputs.NOTIFY_MYSQL_USER }}
+      NOTIFY_MYSQL_DATABASE: ${{ steps.set.outputs.NOTIFY_MYSQL_DATABASE }}
     steps:
       - name: Assign Vars
         id: set
@@ -93,6 +100,13 @@ jobs:
           echo "MYSQL_PORT=${{ vars.MYSQL_PORT }}" >> $GITHUB_OUTPUT
           echo "MYSQL_USER=${{ vars.MYSQL_USER }}" >> $GITHUB_OUTPUT
           echo "MYSQL_DATABASE=${{ vars.MYSQL_DATABASE }}" >> $GITHUB_OUTPUT
+          echo "NOTIFY_SERVER_HOSTNAME=${{ vars.NOTIFY_SERVER_HOSTNAME }}" >> $GITHUB_OUTPUT
+          echo "NOTIFY_SERVER_PORT=${{ vars.NOTIFY_SERVER_PORT }}" >> $GITHUB_OUTPUT
+          echo "NOTIFY_SERVER_USERNAME=${{ vars.NOTIFY_SERVER_USERNAME }}" >> $GITHUB_OUTPUT
+          echo "NOTIFY_MYSQL_HOST=${{ vars.NOTIFY_MYSQL_HOST }}" >> $GITHUB_OUTPUT
+          echo "NOTIFY_MYSQL_PORT=${{ vars.NOTIFY_MYSQL_PORT }}" >> $GITHUB_OUTPUT
+          echo "NOTIFY_MYSQL_USER=${{ vars.NOTIFY_MYSQL_USER }}" >> $GITHUB_OUTPUT
+          echo "NOTIFY_MYSQL_DATABASE=${{ vars.NOTIFY_MYSQL_DATABASE }}" >> $GITHUB_OUTPUT
 
   call-workflow-backup-database:
     name: Call Backup Database Workflow
@@ -112,6 +126,13 @@ jobs:
       MYSQL_PORT: ${{ needs.vars.outputs.MYSQL_PORT }}
       MYSQL_USER: ${{ needs.vars.outputs.MYSQL_USER }}
       MYSQL_DATABASE: ${{ needs.vars.outputs.MYSQL_DATABASE }}
+      NOTIFY_SERVER_PORT: ${{ needs.vars.outputs.NOTIFY_SERVER_PORT }}
+      NOTIFY_SERVER_HOSTNAME: ${{ needs.vars.outputs.NOTIFY_SERVER_HOSTNAME }}
+      NOTIFY_SERVER_USERNAME: ${{ needs.vars.outputs.NOTIFY_SERVER_USERNAME }}
+      NOTIFY_MYSQL_HOST: ${{ needs.vars.outputs.NOTIFY_MYSQL_HOST }}
+      NOTIFY_MYSQL_PORT: ${{ needs.vars.outputs.NOTIFY_MYSQL_PORT }}
+      NOTIFY_MYSQL_USER: ${{ needs.vars.outputs.NOTIFY_MYSQL_USER }}
+      NOTIFY_MYSQL_DATABASE: ${{ needs.vars.outputs.NOTIFY_MYSQL_DATABASE }}
 ```
 
 For application files backups insert the below code in `.github/workflows/backup-files.yml`:
@@ -139,6 +160,13 @@ jobs:
       SERVER_HOSTNAME: ${{ steps.set.outputs.SERVER_HOSTNAME }}
       SERVER_PORT: ${{ steps.set.outputs.SERVER_PORT }}
       SERVER_USERNAME: ${{ steps.set.outputs.SERVER_USERNAME }}
+      NOTIFY_SERVER_HOSTNAME: ${{ steps.set.outputs.NOTIFY_SERVER_HOSTNAME }}
+      NOTIFY_SERVER_PORT: ${{ steps.set.outputs.NOTIFY_SERVER_PORT }}
+      NOTIFY_SERVER_USERNAME: ${{ steps.set.outputs.NOTIFY_SERVER_USERNAME }}
+      NOTIFY_MYSQL_HOST: ${{ steps.set.outputs.NOTIFY_MYSQL_HOST }}
+      NOTIFY_MYSQL_PORT: ${{ steps.set.outputs.NOTIFY_MYSQL_PORT }}
+      NOTIFY_MYSQL_USER: ${{ steps.set.outputs.NOTIFY_MYSQL_USER }}
+      NOTIFY_MYSQL_DATABASE: ${{ steps.set.outputs.NOTIFY_MYSQL_DATABASE }}
     steps:
       - name: Assign Vars
         id: set
@@ -152,6 +180,13 @@ jobs:
           echo "SERVER_HOSTNAME=${{ vars.SERVER_HOSTNAME }}" >> $GITHUB_OUTPUT
           echo "SERVER_PORT=${{ vars.SERVER_PORT }}" >> $GITHUB_OUTPUT
           echo "SERVER_USERNAME=${{ vars.SERVER_USERNAME }}" >> $GITHUB_OUTPUT
+          echo "NOTIFY_SERVER_HOSTNAME=${{ vars.NOTIFY_SERVER_HOSTNAME }}" >> $GITHUB_OUTPUT
+          echo "NOTIFY_SERVER_PORT=${{ vars.NOTIFY_SERVER_PORT }}" >> $GITHUB_OUTPUT
+          echo "NOTIFY_SERVER_USERNAME=${{ vars.NOTIFY_SERVER_USERNAME }}" >> $GITHUB_OUTPUT
+          echo "NOTIFY_MYSQL_HOST=${{ vars.NOTIFY_MYSQL_HOST }}" >> $GITHUB_OUTPUT
+          echo "NOTIFY_MYSQL_PORT=${{ vars.NOTIFY_MYSQL_PORT }}" >> $GITHUB_OUTPUT
+          echo "NOTIFY_MYSQL_USER=${{ vars.NOTIFY_MYSQL_USER }}" >> $GITHUB_OUTPUT
+          echo "NOTIFY_MYSQL_DATABASE=${{ vars.NOTIFY_MYSQL_DATABASE }}" >> $GITHUB_OUTPUT
 
   call-workflow-backup-files:
     name: Call Backup Database Workflow
@@ -168,6 +203,13 @@ jobs:
       SERVER_PORT: ${{ needs.vars.outputs.SERVER_PORT }}
       SERVER_HOSTNAME: ${{ needs.vars.outputs.SERVER_HOSTNAME }}
       SERVER_USERNAME: ${{ needs.vars.outputs.SERVER_USERNAME }}
+      NOTIFY_SERVER_PORT: ${{ needs.vars.outputs.NOTIFY_SERVER_PORT }}
+      NOTIFY_SERVER_HOSTNAME: ${{ needs.vars.outputs.NOTIFY_SERVER_HOSTNAME }}
+      NOTIFY_SERVER_USERNAME: ${{ needs.vars.outputs.NOTIFY_SERVER_USERNAME }}
+      NOTIFY_MYSQL_HOST: ${{ needs.vars.outputs.NOTIFY_MYSQL_HOST }}
+      NOTIFY_MYSQL_PORT: ${{ needs.vars.outputs.NOTIFY_MYSQL_PORT }}
+      NOTIFY_MYSQL_USER: ${{ needs.vars.outputs.NOTIFY_MYSQL_USER }}
+      NOTIFY_MYSQL_DATABASE: ${{ needs.vars.outputs.NOTIFY_MYSQL_DATABASE }}
 ```
 
 ### Development/Testing
