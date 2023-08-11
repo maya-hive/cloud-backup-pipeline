@@ -56,6 +56,10 @@ on:
         type: string
         required: true
 
+      NOTIFY_MYSQL_PORT:
+        type: string
+        required: true
+
       NOTIFY_MYSQL_USER:
         type: string
         required: true
@@ -159,6 +163,7 @@ jobs:
           script: |
             mysql \
             --host ${{ inputs.NOTIFY_MYSQL_HOST }} \
+            --port ${{ inputs.NOTIFY_MYSQL_PORT }} \
             --user ${{ inputs.NOTIFY_MYSQL_USER }} \
             -p${{ secrets.NOTIFY_MYSQL_PASS }} \
             ${{ inputs.NOTIFY_MYSQL_DATABASE }} \
@@ -179,6 +184,7 @@ jobs:
           script: |
             mysql \
             --host ${{ inputs.NOTIFY_MYSQL_HOST }} \
+            --port ${{ inputs.NOTIFY_MYSQL_PORT }} \
             --user ${{ inputs.NOTIFY_MYSQL_USER }} \
             -p${{ secrets.NOTIFY_MYSQL_PASS }} \
             ${{ inputs.NOTIFY_MYSQL_DATABASE }} \
