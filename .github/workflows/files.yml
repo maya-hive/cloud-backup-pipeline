@@ -168,7 +168,7 @@ jobs:
             -p${{ secrets.NOTIFY_MYSQL_PASS }} \
             ${{ inputs.NOTIFY_MYSQL_DATABASE }} \
             --execute "INSERT INTO tasks (project_name, backup_type, backup_status, run_url, bucket, object, path) \
-            VALUES ('$GITHUB_ACTOR/$GITHUB_REPOSITORY', 'db', 'success', '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}', '${{ inputs.AWS_S3_BUCKET }}', '${{ inputs.AWS_S3_OBJECT }}', '${{ env.timestamp }}-mysql.sql.gz');"
+            VALUES ('${{ github.actor }}/${{ github.repository }}', 'db', 'success', '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}', '${{ inputs.AWS_S3_BUCKET }}', '${{ inputs.AWS_S3_OBJECT }}', '${{ env.timestamp }}-mysql.sql.gz');"
 
       - name: Failure Notification
         uses: appleboy/ssh-action@v0.1.10
@@ -189,4 +189,4 @@ jobs:
             -p${{ secrets.NOTIFY_MYSQL_PASS }} \
             ${{ inputs.NOTIFY_MYSQL_DATABASE }} \
             --execute "INSERT INTO tasks (project_name, backup_type, backup_status, run_url, bucket, object, path) \
-            VALUES ('$GITHUB_ACTOR/$GITHUB_REPOSITORY', 'db', 'failure', '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}', '${{ inputs.AWS_S3_BUCKET }}', '${{ inputs.AWS_S3_OBJECT }}', '${{ env.timestamp }}-mysql.sql.gz');"
+            VALUES ('${{ github.actor }}/${{ github.repository }}', 'db', 'failure', '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}', '${{ inputs.AWS_S3_BUCKET }}', '${{ inputs.AWS_S3_OBJECT }}', '${{ env.timestamp }}-mysql.sql.gz');"
