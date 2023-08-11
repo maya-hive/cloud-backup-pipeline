@@ -167,7 +167,7 @@ jobs:
             --user ${{ inputs.NOTIFY_MYSQL_USER }} \
             -p${{ secrets.NOTIFY_MYSQL_PASS }} \
             ${{ inputs.NOTIFY_MYSQL_DATABASE }} \
-            --execute "INSERT INTO tasks (project_name, backup_type, backup_status, job_id, job_url, storage_location) \
+            --execute "INSERT INTO tasks (project_name, backup_type, backup_status, run_url, bucket, object, path) \
             VALUES ('$GITHUB_ACTOR/$GITHUB_REPOSITORY', 'db', 'success', '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}', '${{ inputs.AWS_S3_BUCKET }}', '${{ inputs.AWS_S3_OBJECT }}', '${{ env.timestamp }}-mysql.sql.gz');"
 
       - name: Failure Notification
@@ -188,5 +188,5 @@ jobs:
             --user ${{ inputs.NOTIFY_MYSQL_USER }} \
             -p${{ secrets.NOTIFY_MYSQL_PASS }} \
             ${{ inputs.NOTIFY_MYSQL_DATABASE }} \
-            --execute "INSERT INTO tasks (project_name, backup_type, backup_status, job_id, job_url, storage_location) \
+            --execute "INSERT INTO tasks (project_name, backup_type, backup_status, run_url, bucket, object, path) \
             VALUES ('$GITHUB_ACTOR/$GITHUB_REPOSITORY', 'db', 'failure', '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}', '${{ inputs.AWS_S3_BUCKET }}', '${{ inputs.AWS_S3_OBJECT }}', '${{ env.timestamp }}-mysql.sql.gz');"
