@@ -40,6 +40,30 @@ on:
         type: string
         required: true
 
+      NOTIFY_SERVER_HOSTNAME:
+        type: string
+        required: true
+
+      NOTIFY_SERVER_PORT:
+        type: string
+        required: true
+
+      NOTIFY_SERVER_USERNAME:
+        type: string
+        required: true
+
+      NOTIFY_MYSQL_HOST:
+        type: string
+        required: true
+
+      NOTIFY_MYSQL_USER:
+        type: string
+        required: true
+
+      NOTIFY_MYSQL_DATABASE:
+        type: string
+        required: true
+
 jobs:
   backup:
     name: Backup Files
@@ -121,40 +145,42 @@ jobs:
           s3://${{ inputs.AWS_S3_BUCKET }}/${{ inputs.AWS_S3_OBJECT }}/${{ env.timestamp }}-files.zip 
           --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }}
 
-      - name: Delete excess backups in S3 bucket
-        run: >
-          counter=0
-
-          files=$(aws s3api list-objects \
-            --bucket "${{ inputs.AWS_S3_BUCKET }}" \
-            --prefix "${{ inputs.AWS_S3_OBJECT }}/" \
-            --query 'Contents[?ends_with(Key, `'-files.zip'`)].[Key, LastModified]' \
-            --output text \
-            --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }} \
-            | sort -k2 -r \
-            | awk '{print $1}' \
-          )
-
-          for file in $files; do
-              counter=$((counter + 1))
-              if [ $counter -le ${{ inputs.FILE_BACKUP_RETAIN }} ]; then
-                continue
-              fi
-              aws s3 rm s3://${{ inputs.AWS_S3_BUCKET }}/$file --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }};
-          done
-
-      - name: Discord success notification
-        uses: Ilshidur/action-discord@master
+      - name: Success Notification
+        uses: appleboy/ssh-action@v0.1.10
         if: success()
         env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          TIMESTAMP: ${{ env.timestamp }}
         with:
-          args: "🟢 Files backup completed at: ${{ env.timestamp }}."
+          host: ${{ inputs.NOTIFY_SERVER_HOSTNAME }}
+          username: ${{ inputs.NOTIFY_SERVER_USERNAME }}
+          key: ${{ secrets.NOTIFY_SERVER_SECRET_KEY }}
+          port: ${{ inputs.NOTIFY_SERVER_PORT }}
+          envs: TIMESTAMP
+          script: |
+            mysql \
+            --host ${{ inputs.NOTIFY_MYSQL_HOST }} \
+            --user ${{ inputs.NOTIFY_MYSQL_USER }} \
+            -p${{ secrets.NOTIFY_MYSQL_PASS }} \
+            ${{ inputs.NOTIFY_MYSQL_DATABASE }} \
+            --execute "INSERT INTO tasks (project_name, backup_type, backup_status, job_id, job_url, storage_location) \
+            VALUES ("$GITHUB_ACTOR/$GITHUB_REPOSITORY", "fs", "success", "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}", "${{ inputs.AWS_S3_BUCKET }}", "${{ inputs.AWS_S3_OBJECT }}", "${{ env.timestamp }}-files.zip");
 
-      - name: Discord failure notification
-        uses: Ilshidur/action-discord@master
+      - name: Failure Notification
+        uses: appleboy/ssh-action@v0.1.10
         if: failure()
         env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          TIMESTAMP: ${{ env.timestamp }}
         with:
-          args: "🛑 Files backup failed at: ${{ env.timestamp }}."
+          host: ${{ inputs.NOTIFY_SERVER_HOSTNAME }}
+          username: ${{ inputs.NOTIFY_SERVER_USERNAME }}
+          key: ${{ secrets.NOTIFY_SERVER_SECRET_KEY }}
+          port: ${{ inputs.NOTIFY_SERVER_PORT }}
+          envs: TIMESTAMP
+          script: |
+            mysql \
+            --host ${{ inputs.NOTIFY_MYSQL_HOST }} \
+            --user ${{ inputs.NOTIFY_MYSQL_USER }} \
+            -p${{ secrets.NOTIFY_MYSQL_PASS }} \
+            ${{ inputs.NOTIFY_MYSQL_DATABASE }} \
+            --execute "INSERT INTO tasks (project_name, backup_type, backup_status, job_id, job_url, storage_location) \
+            VALUES ("$GITHUB_ACTOR/$GITHUB_REPOSITORY", "fs", "failure", "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}", "${{ inputs.AWS_S3_BUCKET }}", "${{ inputs.AWS_S3_OBJECT }}", "${{ env.timestamp }}-files.zip");
