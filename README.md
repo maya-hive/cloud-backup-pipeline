@@ -1,6 +1,6 @@
 # Cloud Backup Pipeline
 
-This pipeline uses AWS-compatible S3 storage to store application databases and file backups. The backup pipeline retains only a specified count of backups to prevent storage overflow.
+Uses AWS-compatible S3 storage to store application databases and file backup snapshots and retains only a specified count of backups to prevent storage overflow. The pipeline pushes metrics to a MySQL database which can be scaped for monitoring.
 
 ### Configuration Guide
 
@@ -33,6 +33,14 @@ SERVER_USERNAME
 FILE_BACKUP_APPLICATION_PATH
 FILE_BACKUP_RETAIN
 DATABASE_BACKUP_RETAIN
+
+NOTIFY_SERVER_HOSTNAME
+NOTIFY_SERVER_PORT
+NOTIFY_SERVER_USERNAME
+NOTIFY_MYSQL_HOST
+NOTIFY_MYSQL_PORT
+NOTIFY_MYSQL_USER
+NOTIFY_MYSQL_DATABASE
 ```
 
 ### Required GitHub Repository Action Variables
@@ -42,9 +50,12 @@ We use variables for non-sensitive credentials that can be read or updated later
 ```env
 AWS_ACCESS_KEY_ID
 AWS_SECRET_ACCESS_KEY
-DISCORD_WEBHOOK
+
 SERVER_SECRET_KEY
+
 MYSQL_PASS
+
+NOTIFY_MYSQL_PASS
 ```
 
 ### Using This Workflow
@@ -110,7 +121,7 @@ jobs:
 
   call-workflow-backup-database:
     name: Call Backup Database Workflow
-    uses: maya-hive/cloud-backup-pipeline/.github/workflows/database.yml@v2.0.0 # Use the required release version
+    uses: maya-hive/cloud-backup-pipeline/.github/workflows/database.yml@v2.0.0 # Specify release version
     secrets: inherit
     needs: vars
     with:
@@ -190,7 +201,7 @@ jobs:
 
   call-workflow-backup-files:
     name: Call Backup Database Workflow
-    uses: maya-hive/cloud-backup-pipeline/.github/workflows/files.yml@v2.0.0 # Use the required release version
+    uses: maya-hive/cloud-backup-pipeline/.github/workflows/files.yml@v2.0.0 # Specify release version
     secrets: inherit
     needs: vars
     with:
@@ -212,10 +223,28 @@ jobs:
       NOTIFY_MYSQL_DATABASE: ${{ needs.vars.outputs.NOTIFY_MYSQL_DATABASE }}
 ```
 
-### Development/Testing
+### Notifications
+
+The pipeline will push workflow metrics of each run to a remote MySQL instance. The database schema should be as follows:
+
+```sql
+CREATE TABLE tasks (
+  id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  type ENUM('fs', 'db') NOT NULL,
+  status TINYINT NOT NULL,
+  url VARCHAR(255) NOT NULL,
+  bucket VARCHAR(255) NOT NULL,
+  object VARCHAR(255) NOT NULL,
+  path VARCHAR(255) NOT NULL,
+  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### Development/Local Testing
 
 Use nektos/act to run GitHub workflows locally:
 
 ```bash
-act --secret-file .env workflow_call -v
+act --secret-file .env.act workflow_call --input-file inputs.act -v
 ```
