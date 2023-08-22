@@ -1,1 +1,6 @@
+# Environment Variables
 .env
+.env.act
+
+# Workflow Inputs
+.inputs.act

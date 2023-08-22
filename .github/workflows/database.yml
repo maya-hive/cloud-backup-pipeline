@@ -3,11 +3,82 @@ name: Backup Application Database
 
 on:
   workflow_call:
+    inputs:
+      DATABASE_BACKUP_RETAIN:
+        type: string
+        required: true
 
-env:
-  BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-  OBJECT: ${{ secrets.AWS_S3_OBJECT }}
-  RETAIN_BACKUPS: ${{ secrets.DATABASE_BACKUP_RETAIN }}
+      AWS_REGION:
+        type: string
+        required: true
+
+      AWS_S3_BUCKET:
+        type: string
+        required: true
+
+      AWS_S3_OBJECT:
+        type: string
+        required: true
+
+      AWS_S3_ENDPOINT:
+        type: string
+        required: true
+
+      SERVER_HOSTNAME:
+        type: string
+        required: true
+
+      SERVER_PORT:
+        type: string
+        required: true
+
+      SERVER_USERNAME:
+        type: string
+        required: true
+
+      MYSQL_HOST:
+        type: string
+        required: true
+
+      MYSQL_PORT:
+        type: string
+        required: true
+
+      MYSQL_USER:
+        type: string
+        required: true
+
+      MYSQL_DATABASE:
+        type: string
+        required: true
+
+      NOTIFY_SERVER_HOSTNAME:
+        type: string
+        required: true
+
+      NOTIFY_SERVER_PORT:
+        type: string
+        required: true
+
+      NOTIFY_SERVER_USERNAME:
+        type: string
+        required: true
+
+      NOTIFY_MYSQL_HOST:
+        type: string
+        required: true
+
+      NOTIFY_MYSQL_PORT:
+        type: string
+        required: true
+
+      NOTIFY_MYSQL_USER:
+        type: string
+        required: true
+
+      NOTIFY_MYSQL_DATABASE:
+        type: string
+        required: true
 
 jobs:
   backup:
@@ -50,10 +121,10 @@ jobs:
         env:
           TIMESTAMP: ${{ env.timestamp }}
         with:
-          host: ${{ secrets.SERVER_HOSTNAME }}
-          username: ${{ secrets.SERVER_USERNAME }}
+          host: ${{ inputs.SERVER_HOSTNAME }}
+          username: ${{ inputs.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SECRET_KEY }}
-          port: ${{ secrets.SERVER_PORT }}
+          port: ${{ inputs.SERVER_PORT }}
           envs: TIMESTAMP
           script: |
             mkdir --parent /srv/rsync/backups
@@ -61,11 +132,11 @@ jobs:
             mysqldump \
             --quick \
             --single-transaction \
-            --host=${{ secrets.MYSQL_HOST }} \
-            --port=${{ secrets.MYSQL_PORT }} \
-            --user=${{ secrets.MYSQL_USER }} \
+            --host=${{ inputs.MYSQL_HOST }} \
+            --port=${{ inputs.MYSQL_PORT }} \
+            --user=${{ inputs.MYSQL_USER }} \
             --password=${{ secrets.MYSQL_PASS }} \
-            --databases ${{ secrets.MYSQL_DATABASE }} > /srv/rsync/backups/$TIMESTAMP-mysql.sql
+            --databases ${{ inputs.MYSQL_DATABASE }} > /srv/rsync/backups/$TIMESTAMP-mysql.sql
 
             cd /srv/rsync/backups && gzip $TIMESTAMP-mysql.sql
 
@@ -83,7 +154,7 @@ jobs:
           --compress \
           --remove-source-files \
           --rsh "ssh -o StrictHostKeyChecking=no" \
-          ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOSTNAME }}:/srv/rsync/backups/$TIMESTAMP-mysql.sql.gz \
+          ${{ inputs.SERVER_USERNAME }}@${{ inputs.SERVER_HOSTNAME }}:/srv/rsync/backups/$TIMESTAMP-mysql.sql.gz \
           /srv/rsync/backups/${{ env.timestamp }}-mysql.sql.gz
 
       - name: Configure AWS credentials
@@ -99,54 +170,85 @@ jobs:
         run: >
           aws s3 cp 
           /srv/rsync/backups/${{ env.timestamp }}-mysql.sql.gz
-          s3://$BUCKET/$OBJECT/${{ env.timestamp }}-mysql.sql.gz 
-          --endpoint-url ${{ secrets.AWS_S3_ENDPOINT }}
-
-      - name: List backups in S3 bucket
-        id: list-backups
-        run: >
-          BACKUPS=$(aws s3 ls s3://$BUCKET/$OBJECT \
-            --recursive \
-            --endpoint-url ${{ secrets.AWS_S3_ENDPOINT }} \
-            | awk '{$1=$2=$3=""; print $0}' \
-            | sed 's/^[ \t]*//' \
-          )
-          echo "::set-output name=backups::${BACKUPS}"
+          s3://${{ inputs.AWS_S3_BUCKET }}/${{ inputs.AWS_S3_OBJECT }}/${{ env.timestamp }}-mysql.sql.gz 
+          --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }}
 
       - name: Delete excess backups in S3 bucket
         run: >
           counter=0
 
           files=$(aws s3api list-objects \
-            --bucket "$BUCKET" \
-            --prefix "$OBJECT/" \
+            --bucket "${{ inputs.AWS_S3_BUCKET }}" \
+            --prefix "${{ inputs.AWS_S3_OBJECT }}/" \
             --query 'Contents[?ends_with(Key, `'-mysql.sql.gz'`)].[Key, LastModified]' \
             --output text \
-            --endpoint-url ${{ secrets.AWS_S3_ENDPOINT }} \
+            --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }} \
             | sort -k2 -r \
             | awk '{print $1}' \
           )
 
           for file in $files; do
               counter=$((counter + 1))
-              if [ $counter -le $RETAIN_BACKUPS ]; then
+              if [ $counter -le ${{ inputs.DATABASE_BACKUP_RETAIN }} ]; then
                 continue
               fi
-              aws s3 rm s3://$BUCKET/$file --endpoint-url ${{ secrets.AWS_S3_ENDPOINT }};
+              aws s3 rm s3://${{ inputs.AWS_S3_BUCKET }}/$file --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }};
           done
 
-      - name: Discord success notification
-        uses: Ilshidur/action-discord@master
+      - name: Success Notification
+        uses: appleboy/ssh-action@v0.1.10
         if: success()
         env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          TIMESTAMP: ${{ env.timestamp }}
         with:
-          args: "🟢 Database backup completed at: ${{ env.timestamp }}."
+          host: ${{ inputs.NOTIFY_SERVER_HOSTNAME }}
+          username: ${{ inputs.NOTIFY_SERVER_USERNAME }}
+          key: ${{ secrets.NOTIFY_SERVER_SECRET_KEY }}
+          port: ${{ inputs.NOTIFY_SERVER_PORT }}
+          envs: TIMESTAMP
+          script: |
+            mysql \
+            --host ${{ inputs.NOTIFY_MYSQL_HOST }} \
+            --port ${{ inputs.NOTIFY_MYSQL_PORT }} \
+            --user ${{ inputs.NOTIFY_MYSQL_USER }} \
+            -p${{ secrets.NOTIFY_MYSQL_PASS }} \
+            ${{ inputs.NOTIFY_MYSQL_DATABASE }} \
+            --execute "INSERT INTO tasks (name, type, status, url, bucket, object, path) \
+            VALUES ( \
+              '${{ github.repository }}', \
+              'db', \
+              1, \
+              '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}', \
+              '${{ inputs.AWS_S3_BUCKET }}', \
+              '${{ inputs.AWS_S3_OBJECT }}', \
+              '${{ env.timestamp }}-mysql.sql.gz' \
+            );"
 
-      - name: Discord failure notification
-        uses: Ilshidur/action-discord@master
+      - name: Failure Notification
+        uses: appleboy/ssh-action@v0.1.10
         if: failure()
         env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          TIMESTAMP: ${{ env.timestamp }}
         with:
-          args: "🛑 Database backup failed at: ${{ env.timestamp }}."
+          host: ${{ inputs.NOTIFY_SERVER_HOSTNAME }}
+          username: ${{ inputs.NOTIFY_SERVER_USERNAME }}
+          key: ${{ secrets.NOTIFY_SERVER_SECRET_KEY }}
+          port: ${{ inputs.NOTIFY_SERVER_PORT }}
+          envs: TIMESTAMP
+          script: |
+            mysql \
+            --host ${{ inputs.NOTIFY_MYSQL_HOST }} \
+            --port ${{ inputs.NOTIFY_MYSQL_PORT }} \
+            --user ${{ inputs.NOTIFY_MYSQL_USER }} \
+            -p${{ secrets.NOTIFY_MYSQL_PASS }} \
+            ${{ inputs.NOTIFY_MYSQL_DATABASE }} \
+            --execute "INSERT INTO tasks (name, type, status, url, bucket, object, path) \
+            VALUES ( \
+              '${{ github.repository }}', \
+              'db', \
+              0, \
+              '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}', \
+              '${{ inputs.AWS_S3_BUCKET }}', \
+              '${{ inputs.AWS_S3_OBJECT }}', \
+              '${{ env.timestamp }}-mysql.sql.gz' \
+            );"
