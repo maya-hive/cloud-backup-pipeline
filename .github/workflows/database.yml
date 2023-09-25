@@ -64,10 +64,6 @@ on:
         type: string
         required: true
 
-      NOTIFY_MYSQL_HOST:
-        type: string
-        required: true
-
       NOTIFY_MYSQL_PORT:
         type: string
         required: true
@@ -208,7 +204,7 @@ jobs:
           envs: TIMESTAMP
           script: |
             mysql \
-            --host ${{ inputs.NOTIFY_MYSQL_HOST }} \
+            --host localhost \
             --port ${{ inputs.NOTIFY_MYSQL_PORT }} \
             --user ${{ inputs.NOTIFY_MYSQL_USER }} \
             -p${{ secrets.NOTIFY_MYSQL_PASS }} \
@@ -237,7 +233,7 @@ jobs:
           envs: TIMESTAMP
           script: |
             mysql \
-            --host ${{ inputs.NOTIFY_MYSQL_HOST }} \
+            --host localhost \
             --port ${{ inputs.NOTIFY_MYSQL_PORT }} \
             --user ${{ inputs.NOTIFY_MYSQL_USER }} \
             -p${{ secrets.NOTIFY_MYSQL_PASS }} \
