@@ -11,7 +11,7 @@ Uses AWS-compatible S3 storage to store application databases and file backup sn
 
 Summary: The above will keep running every day at 1.00 AM and will retain up to 2 days of backups for us to roll back.
 
-### Required GitHub Repository Action Secrets
+### Required GitHub Repository Action Variables
 
 We use Encrypted secrets to store sensitive credentials.
 
@@ -43,7 +43,7 @@ NOTIFY_MYSQL_USER
 NOTIFY_MYSQL_DATABASE
 ```
 
-### Required GitHub Repository Action Variables
+### Required GitHub Repository Action Secrets
 
 We use variables for non-sensitive credentials that can be read or updated later.
 
@@ -56,6 +56,7 @@ SERVER_SECRET_KEY
 MYSQL_PASS
 
 NOTIFY_MYSQL_PASS
+NOTIFY_SERVER_SECRET_KEY
 ```
 
 ### Using This Workflow
