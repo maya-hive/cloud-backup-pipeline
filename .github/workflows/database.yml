@@ -89,11 +89,6 @@ jobs:
           $(date +%s) + (5 * 3600) + (30 * 60) ))" \
           +'%d-%m-%Y-%H%M')" >> "$GITHUB_ENV"
 
-          tmpdir=$(mktemp /var/tmp/cloud-backup-pipeline.XXXXXX)
-          echo "tmpdir=$tmpdir" >> "$GITHUB_ENV"
-
-          mkdir --parents "$tmpdir"
-
       - name: Install system packages
         run: |
           apt-get update --assume-yes
@@ -116,6 +111,20 @@ jobs:
         if: ${{ !env.ACT }}
         with:
           ssh-private-key: ${{ secrets.SERVER_SECRET_KEY }}
+
+      - name: Create temporary directory
+        uses: appleboy/ssh-action@v0.1.10
+        env:
+          TMPDIR: ${{ env.tmpdir }}
+        with:
+          host: ${{ inputs.SERVER_HOSTNAME }}
+          username: ${{ inputs.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SECRET_KEY }}
+          port: ${{ inputs.SERVER_PORT }}
+          envs: TMPDIR
+          script: |
+            tmpdir=$(mktemp /var/tmp/cloud-backup-pipeline.XXXXXX)
+            echo "tmpdir=$tmpdir" >> "$GITHUB_ENV"
 
       - name: Dump MySQL database
         uses: appleboy/ssh-action@v0.1.10
