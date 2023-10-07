@@ -194,6 +194,19 @@ jobs:
               aws s3 rm s3://${{ inputs.AWS_S3_BUCKET }}/$file --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }};
           done
 
+      - name: Delete temporary directory
+        uses: appleboy/ssh-action@v0.1.10
+        env:
+          TMP_DIR: ${{ env.TMP_DIR }}
+        with:
+          host: ${{ inputs.SERVER_HOSTNAME }}
+          username: ${{ inputs.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SECRET_KEY }}
+          port: ${{ inputs.SERVER_PORT }}
+          envs: TMP_DIR
+          script: |
+            rm --recursive --force $TMP_DIR
+
       - name: Success Notification
         uses: appleboy/ssh-action@v0.1.10
         if: success()
