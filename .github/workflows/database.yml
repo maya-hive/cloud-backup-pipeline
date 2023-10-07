@@ -64,10 +64,6 @@ on:
         type: string
         required: true
 
-      NOTIFY_MYSQL_PORT:
-        type: string
-        required: true
-
       NOTIFY_MYSQL_USER:
         type: string
         required: true
@@ -112,19 +108,25 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SERVER_SECRET_KEY }}
 
+      - name: Create temporary directory
+        run: |
+          tmp_dir=$(ssh \
+          -o StrictHostKeyChecking=no ${{ inputs.SERVER_USERNAME }}@${{ inputs.SERVER_HOSTNAME }} \
+          "mktemp -d /var/tmp/cloud-backup-pipeline.XXXXXX")
+          echo "TMP_DIR=$tmp_dir" >> $GITHUB_ENV
+
       - name: Dump MySQL database
         uses: appleboy/ssh-action@v0.1.10
         env:
           TIMESTAMP: ${{ env.timestamp }}
+          TMP_DIR: ${{ env.TMP_DIR }}
         with:
           host: ${{ inputs.SERVER_HOSTNAME }}
           username: ${{ inputs.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SECRET_KEY }}
           port: ${{ inputs.SERVER_PORT }}
-          envs: TIMESTAMP
+          envs: TIMESTAMP, TMP_DIR
           script: |
-            mkdir --parent /srv/rsync/backups
-
             mysqldump \
             --quick \
             --single-transaction \
@@ -132,13 +134,14 @@ jobs:
             --port=${{ inputs.MYSQL_PORT }} \
             --user=${{ inputs.MYSQL_USER }} \
             --password=${{ secrets.MYSQL_PASS }} \
-            --databases ${{ inputs.MYSQL_DATABASE }} > /srv/rsync/backups/$TIMESTAMP-mysql.sql
+            --databases ${{ inputs.MYSQL_DATABASE }} > $TMP_DIR/$TIMESTAMP-mysql.sql
 
-            cd /srv/rsync/backups && gzip $TIMESTAMP-mysql.sql
+            gzip $TMP_DIR/$TIMESTAMP-mysql.sql
 
       - name: Transport database
         env:
           TIMESTAMP: ${{ env.timestamp }}
+          TMP_DIR: ${{ env.TMP_DIR }}
         run: |
           mkdir --parents /srv/rsync/backups 
 
@@ -150,7 +153,7 @@ jobs:
           --compress \
           --remove-source-files \
           --rsh "ssh -o StrictHostKeyChecking=no" \
-          ${{ inputs.SERVER_USERNAME }}@${{ inputs.SERVER_HOSTNAME }}:/srv/rsync/backups/$TIMESTAMP-mysql.sql.gz \
+          ${{ inputs.SERVER_USERNAME }}@${{ inputs.SERVER_HOSTNAME }}:$TMP_DIR/$TIMESTAMP-mysql.sql.gz \
           /srv/rsync/backups/${{ env.timestamp }}-mysql.sql.gz
 
       - name: Configure AWS credentials
@@ -191,6 +194,19 @@ jobs:
               aws s3 rm s3://${{ inputs.AWS_S3_BUCKET }}/$file --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }};
           done
 
+      - name: Delete temporary directory
+        uses: appleboy/ssh-action@v0.1.10
+        env:
+          TMP_DIR: ${{ env.TMP_DIR }}
+        with:
+          host: ${{ inputs.SERVER_HOSTNAME }}
+          username: ${{ inputs.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SECRET_KEY }}
+          port: ${{ inputs.SERVER_PORT }}
+          envs: TMP_DIR
+          script: |
+            rm --recursive --force $TMP_DIR
+
       - name: Success Notification
         uses: appleboy/ssh-action@v0.1.10
         if: success()
@@ -205,7 +221,7 @@ jobs:
           script: |
             mysql \
             --host localhost \
-            --port ${{ inputs.NOTIFY_MYSQL_PORT }} \
+            --port 3306 \
             --user ${{ inputs.NOTIFY_MYSQL_USER }} \
             -p${{ secrets.NOTIFY_MYSQL_PASS }} \
             ${{ inputs.NOTIFY_MYSQL_DATABASE }} \
@@ -234,7 +250,7 @@ jobs:
           script: |
             mysql \
             --host localhost \
-            --port ${{ inputs.NOTIFY_MYSQL_PORT }} \
+            --port 3306 \
             --user ${{ inputs.NOTIFY_MYSQL_USER }} \
             -p${{ secrets.NOTIFY_MYSQL_PASS }} \
             ${{ inputs.NOTIFY_MYSQL_DATABASE }} \

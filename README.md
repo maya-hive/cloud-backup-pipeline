@@ -37,7 +37,6 @@ DATABASE_BACKUP_RETAIN
 NOTIFY_SERVER_HOSTNAME
 NOTIFY_SERVER_PORT
 NOTIFY_SERVER_USERNAME
-NOTIFY_MYSQL_PORT
 NOTIFY_MYSQL_USER
 NOTIFY_MYSQL_DATABASE
 ```
@@ -91,7 +90,6 @@ jobs:
       NOTIFY_SERVER_HOSTNAME: ${{ steps.set.outputs.NOTIFY_SERVER_HOSTNAME }}
       NOTIFY_SERVER_PORT: ${{ steps.set.outputs.NOTIFY_SERVER_PORT }}
       NOTIFY_SERVER_USERNAME: ${{ steps.set.outputs.NOTIFY_SERVER_USERNAME }}
-      NOTIFY_MYSQL_PORT: ${{ steps.set.outputs.NOTIFY_MYSQL_PORT }}
       NOTIFY_MYSQL_USER: ${{ steps.set.outputs.NOTIFY_MYSQL_USER }}
       NOTIFY_MYSQL_DATABASE: ${{ steps.set.outputs.NOTIFY_MYSQL_DATABASE }}
     steps:
@@ -113,7 +111,6 @@ jobs:
           echo "NOTIFY_SERVER_HOSTNAME=${{ vars.NOTIFY_SERVER_HOSTNAME }}" >> $GITHUB_OUTPUT
           echo "NOTIFY_SERVER_PORT=${{ vars.NOTIFY_SERVER_PORT }}" >> $GITHUB_OUTPUT
           echo "NOTIFY_SERVER_USERNAME=${{ vars.NOTIFY_SERVER_USERNAME }}" >> $GITHUB_OUTPUT
-          echo "NOTIFY_MYSQL_PORT=${{ vars.NOTIFY_MYSQL_PORT }}" >> $GITHUB_OUTPUT
           echo "NOTIFY_MYSQL_USER=${{ vars.NOTIFY_MYSQL_USER }}" >> $GITHUB_OUTPUT
           echo "NOTIFY_MYSQL_DATABASE=${{ vars.NOTIFY_MYSQL_DATABASE }}" >> $GITHUB_OUTPUT
 
@@ -138,7 +135,6 @@ jobs:
       NOTIFY_SERVER_PORT: ${{ needs.vars.outputs.NOTIFY_SERVER_PORT }}
       NOTIFY_SERVER_HOSTNAME: ${{ needs.vars.outputs.NOTIFY_SERVER_HOSTNAME }}
       NOTIFY_SERVER_USERNAME: ${{ needs.vars.outputs.NOTIFY_SERVER_USERNAME }}
-      NOTIFY_MYSQL_PORT: ${{ needs.vars.outputs.NOTIFY_MYSQL_PORT }}
       NOTIFY_MYSQL_USER: ${{ needs.vars.outputs.NOTIFY_MYSQL_USER }}
       NOTIFY_MYSQL_DATABASE: ${{ needs.vars.outputs.NOTIFY_MYSQL_DATABASE }}
 ```
@@ -171,7 +167,6 @@ jobs:
       NOTIFY_SERVER_HOSTNAME: ${{ steps.set.outputs.NOTIFY_SERVER_HOSTNAME }}
       NOTIFY_SERVER_PORT: ${{ steps.set.outputs.NOTIFY_SERVER_PORT }}
       NOTIFY_SERVER_USERNAME: ${{ steps.set.outputs.NOTIFY_SERVER_USERNAME }}
-      NOTIFY_MYSQL_PORT: ${{ steps.set.outputs.NOTIFY_MYSQL_PORT }}
       NOTIFY_MYSQL_USER: ${{ steps.set.outputs.NOTIFY_MYSQL_USER }}
       NOTIFY_MYSQL_DATABASE: ${{ steps.set.outputs.NOTIFY_MYSQL_DATABASE }}
     steps:
@@ -190,7 +185,6 @@ jobs:
           echo "NOTIFY_SERVER_HOSTNAME=${{ vars.NOTIFY_SERVER_HOSTNAME }}" >> $GITHUB_OUTPUT
           echo "NOTIFY_SERVER_PORT=${{ vars.NOTIFY_SERVER_PORT }}" >> $GITHUB_OUTPUT
           echo "NOTIFY_SERVER_USERNAME=${{ vars.NOTIFY_SERVER_USERNAME }}" >> $GITHUB_OUTPUT
-          echo "NOTIFY_MYSQL_PORT=${{ vars.NOTIFY_MYSQL_PORT }}" >> $GITHUB_OUTPUT
           echo "NOTIFY_MYSQL_USER=${{ vars.NOTIFY_MYSQL_USER }}" >> $GITHUB_OUTPUT
           echo "NOTIFY_MYSQL_DATABASE=${{ vars.NOTIFY_MYSQL_DATABASE }}" >> $GITHUB_OUTPUT
 
@@ -212,7 +206,6 @@ jobs:
       NOTIFY_SERVER_PORT: ${{ needs.vars.outputs.NOTIFY_SERVER_PORT }}
       NOTIFY_SERVER_HOSTNAME: ${{ needs.vars.outputs.NOTIFY_SERVER_HOSTNAME }}
       NOTIFY_SERVER_USERNAME: ${{ needs.vars.outputs.NOTIFY_SERVER_USERNAME }}
-      NOTIFY_MYSQL_PORT: ${{ needs.vars.outputs.NOTIFY_MYSQL_PORT }}
       NOTIFY_MYSQL_USER: ${{ needs.vars.outputs.NOTIFY_MYSQL_USER }}
       NOTIFY_MYSQL_DATABASE: ${{ needs.vars.outputs.NOTIFY_MYSQL_DATABASE }}
 ```
