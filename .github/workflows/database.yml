@@ -126,7 +126,7 @@ jobs:
           username: ${{ inputs.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SECRET_KEY }}
           port: ${{ inputs.SERVER_PORT }}
-          envs: TIMESTAMP
+          envs: TIMESTAMP, TMPDIR
           script: |
             mysqldump \
             --quick \
