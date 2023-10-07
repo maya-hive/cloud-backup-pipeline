@@ -168,7 +168,7 @@ jobs:
               if [ $counter -le $RETAIN_BACKUPS ]; then
                 continue
               fi
-              aws s3 rm s3://$BUCKET/$file --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }};
+              aws s3 rm s3://${{ inputs.AWS_S3_BUCKET }}/$file --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }};
           done
 
       - name: Delete temporary directory
