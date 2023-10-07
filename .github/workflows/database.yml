@@ -89,6 +89,8 @@ jobs:
           $(date +%s) + (5 * 3600) + (30 * 60) ))" \
           +'%d-%m-%Y-%H%M')" >> "$GITHUB_ENV"
 
+          echo "tmpdir=$(mktemp /var/tmp/cloud-backup-pipeline.XXXXXX)""
+
       - name: Install system packages
         run: |
           apt-get update --assume-yes
@@ -112,16 +114,11 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SERVER_SECRET_KEY }}
 
-      - name: Create a temporary directory
-        run: |
-          TMPDIR=$(mktemp /var/tmp/cloud-backup-pipeline.XXXXXX)
-        env:
-          TMP_DIR: $TMPDIR
-
       - name: Dump MySQL database
         uses: appleboy/ssh-action@v0.1.10
         env:
           TIMESTAMP: ${{ env.timestamp }}
+          TMPDIR: ${{ env.tmpdir }}
         with:
           host: ${{ inputs.SERVER_HOSTNAME }}
           username: ${{ inputs.SERVER_USERNAME }}
@@ -143,6 +140,7 @@ jobs:
       - name: Transport database
         env:
           TIMESTAMP: ${{ env.timestamp }}
+          TMPDIR: ${{ env.tmpdir }}
         run: |
           rsync \
           --delete \
@@ -153,7 +151,7 @@ jobs:
           --remove-source-files \
           --rsh "ssh -o StrictHostKeyChecking=no" \
           ${{ inputs.SERVER_USERNAME }}@${{ inputs.SERVER_HOSTNAME }}:$TMPDIR/$TIMESTAMP-mysql.sql.gz \
-          $TMPDIR/${{ env.timestamp }}-mysql.sql.gz
+          ${{ env.tmpdir }}/${{ env.timestamp }}-mysql.sql.gz
 
       - name: Configure AWS credentials
         run: |
@@ -167,7 +165,7 @@ jobs:
       - name: Upload backup to S3 bucket
         run: >
           aws s3 cp 
-          $TMPDIR/${{ env.timestamp }}-mysql.sql.gz
+          ${{ env.tmpdir }}/${{ env.timestamp }}-mysql.sql.gz
           s3://${{ inputs.AWS_S3_BUCKET }}/${{ inputs.AWS_S3_OBJECT }}/${{ env.timestamp }}-mysql.sql.gz 
           --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }}
 
