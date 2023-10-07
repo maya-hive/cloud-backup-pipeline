@@ -92,6 +92,8 @@ jobs:
           tmpdir=$(mktemp /var/tmp/cloud-backup-pipeline.XXXXXX)
           echo "tmpdir=$tmpdir" >> "$GITHUB_ENV"
 
+          mkdir --parents "$tmpdir"
+
       - name: Install system packages
         run: |
           apt-get update --assume-yes
