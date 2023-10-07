@@ -210,7 +210,7 @@ jobs:
               '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}', \
               '${{ inputs.AWS_S3_BUCKET }}', \
               '${{ inputs.AWS_S3_OBJECT }}', \
-              '${{ env.timestamp }}-mysql.sql.gz' \
+              '${{ env.timestamp }}-files.zip' \
             );"
 
       - name: Failure Notification
@@ -239,5 +239,5 @@ jobs:
               '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}', \
               '${{ inputs.AWS_S3_BUCKET }}', \
               '${{ inputs.AWS_S3_OBJECT }}', \
-              '${{ env.timestamp }}-mysql.sql.gz' \
+              '${{ env.timestamp }}-files.zip' \
             );"
