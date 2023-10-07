@@ -156,7 +156,7 @@ jobs:
           --remove-source-files \
           --rsh "ssh -o StrictHostKeyChecking=no" \
           ${{ inputs.SERVER_USERNAME }}@${{ inputs.SERVER_HOSTNAME }}:$TMP_DIR/$TIMESTAMP-mysql.sql.gz \
-          ${{ env.TMP_DIR }}/${{ env.timestamp }}-mysql.sql.gz
+          /srv/rsync/${{ env.timestamp }}-mysql.sql.gz
 
       - name: Configure AWS credentials
         run: |
@@ -170,7 +170,7 @@ jobs:
       - name: Upload backup to S3 bucket
         run: >
           aws s3 cp 
-          ${{ env.TMP_DIR }}/${{ env.timestamp }}-mysql.sql.gz
+          /srv/rsync/${{ env.timestamp }}-mysql.sql.gz
           s3://${{ inputs.AWS_S3_BUCKET }}/${{ inputs.AWS_S3_OBJECT }}/${{ env.timestamp }}-mysql.sql.gz 
           --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }}
 
