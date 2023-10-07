@@ -89,7 +89,9 @@ jobs:
           $(date +%s) + (5 * 3600) + (30 * 60) ))" \
           +'%d-%m-%Y-%H%M')" >> "$GITHUB_ENV"
 
-          echo "tmpdir=$(mktemp /var/tmp/cloud-backup-pipeline.XXXXXX)""
+          echo "tmpdir=$( \
+          mktemp /var/tmp/cloud-backup-pipeline.XXXXXX \
+          )" >> "$GITHUB_ENV"
 
       - name: Install system packages
         run: |
