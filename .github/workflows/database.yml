@@ -112,6 +112,12 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SERVER_SECRET_KEY }}
 
+      - name: Create a temporary directory
+        run: |
+          TMPDIR=$(mktemp --directory --tmpdir /var/tmp/ cloud-backup-pipeline-tmpfs.XXXXXX)
+        env:
+          TMP_DIR: $TMPDIR
+
       - name: Dump MySQL database
         uses: appleboy/ssh-action@v0.1.10
         env:
@@ -123,8 +129,6 @@ jobs:
           port: ${{ inputs.SERVER_PORT }}
           envs: TIMESTAMP
           script: |
-            mkdir --parent /srv/rsync/backups
-
             mysqldump \
             --quick \
             --single-transaction \
@@ -132,16 +136,14 @@ jobs:
             --port=${{ inputs.MYSQL_PORT }} \
             --user=${{ inputs.MYSQL_USER }} \
             --password=${{ secrets.MYSQL_PASS }} \
-            --databases ${{ inputs.MYSQL_DATABASE }} > /srv/rsync/backups/$TIMESTAMP-mysql.sql
+            --databases ${{ inputs.MYSQL_DATABASE }} > $TMPDIR/$TIMESTAMP-mysql.sql
 
-            cd /srv/rsync/backups && gzip $TIMESTAMP-mysql.sql
+            gzip $TMPDIR/$TIMESTAMP-mysql.sql
 
       - name: Transport database
         env:
           TIMESTAMP: ${{ env.timestamp }}
         run: |
-          mkdir --parents /srv/rsync/backups 
-
           rsync \
           --delete \
           --verbose \
@@ -150,8 +152,8 @@ jobs:
           --compress \
           --remove-source-files \
           --rsh "ssh -o StrictHostKeyChecking=no" \
-          ${{ inputs.SERVER_USERNAME }}@${{ inputs.SERVER_HOSTNAME }}:/srv/rsync/backups/$TIMESTAMP-mysql.sql.gz \
-          /srv/rsync/backups/${{ env.timestamp }}-mysql.sql.gz
+          ${{ inputs.SERVER_USERNAME }}@${{ inputs.SERVER_HOSTNAME }}:$TMPDIR/$TIMESTAMP-mysql.sql.gz \
+          $TMPDIR/${{ env.timestamp }}-mysql.sql.gz
 
       - name: Configure AWS credentials
         run: |
@@ -165,7 +167,7 @@ jobs:
       - name: Upload backup to S3 bucket
         run: >
           aws s3 cp 
-          /srv/rsync/backups/${{ env.timestamp }}-mysql.sql.gz
+          $TMPDIR/${{ env.timestamp }}-mysql.sql.gz
           s3://${{ inputs.AWS_S3_BUCKET }}/${{ inputs.AWS_S3_OBJECT }}/${{ env.timestamp }}-mysql.sql.gz 
           --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }}
 
