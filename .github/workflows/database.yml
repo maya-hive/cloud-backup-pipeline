@@ -108,7 +108,7 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SERVER_SECRET_KEY }}
 
-      - name: Create a temporary directory
+      - name: Create temporary directory
         run: |
           tmp_dir=$(ssh \
           -o StrictHostKeyChecking=no ${{ inputs.SERVER_USERNAME }}@${{ inputs.SERVER_HOSTNAME }} \

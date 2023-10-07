@@ -96,24 +96,32 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SERVER_SECRET_KEY }}
 
+      - name: Create temporary directory
+        run: |
+          tmp_dir=$(ssh \
+          -o StrictHostKeyChecking=no ${{ inputs.SERVER_USERNAME }}@${{ inputs.SERVER_HOSTNAME }} \
+          "mktemp -d /var/tmp/cloud-backup-pipeline.XXXXXX")
+          echo "TMP_DIR=$tmp_dir" >> $GITHUB_ENV
+
       - name: Compress application files
         uses: appleboy/ssh-action@v0.1.10
         env:
           TIMESTAMP: ${{ env.timestamp }}
+          TMP_DIR: ${{ env.TMP_DIR }}
         with:
           host: ${{ inputs.SERVER_HOSTNAME }}
           username: ${{ inputs.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SECRET_KEY }}
           port: ${{ inputs.SERVER_PORT }}
-          envs: TIMESTAMP
+          envs: TIMESTAMP, TMP_DIR
           script: |
             export {{ env.FILE_BACKUP_APPLICATION_PATH }}=${{ inputs.FILE_BACKUP_APPLICATION_PATH }}
-            mkdir --parent /srv/rsync/backups
-            cd ${{ inputs.FILE_BACKUP_APPLICATION_PATH }} && zip --recurse-paths /srv/rsync/backups/$TIMESTAMP-files.zip .
+            cd ${{ inputs.FILE_BACKUP_APPLICATION_PATH }} && zip --recurse-paths $TMP_DIR/$TIMESTAMP-files.zip .
 
       - name: Transport files
         env:
           TIMESTAMP: ${{ env.timestamp }}
+          TMP_DIR: ${{ env.TMP_DIR }}
         run: >
           mkdir --parents /srv/rsync/backups && rsync
           --archive
@@ -122,7 +130,7 @@ jobs:
           --delete
           --remove-source-files
           --rsh "ssh -o StrictHostKeyChecking=no"
-          ${{ inputs.SERVER_USERNAME }}@${{ inputs.SERVER_HOSTNAME }}:/srv/rsync/backups/$TIMESTAMP-files.zip
+          ${{ inputs.SERVER_USERNAME }}@${{ inputs.SERVER_HOSTNAME }}:$TMP_DIR/$TIMESTAMP-files.zip
           /srv/rsync/backups/${{ env.timestamp }}-files.zip
 
       - name: Configure AWS credentials
@@ -140,6 +148,41 @@ jobs:
           /srv/rsync/backups/${{ env.timestamp }}-files.zip 
           s3://${{ inputs.AWS_S3_BUCKET }}/${{ inputs.AWS_S3_OBJECT }}/${{ env.timestamp }}-files.zip 
           --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }}
+
+      - name: Delete excess backups in S3 bucket
+        run: >
+          counter=0
+
+          files=$(aws s3api list-objects \
+            --bucket "${{ inputs.AWS_S3_BUCKET }}" \
+            --prefix "${{ inputs.AWS_S3_OBJECT }}/" \
+            --query 'Contents[?ends_with(Key, `'-files.zip'`)].[Key, LastModified]' \
+            --output text \
+            --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }} \
+            | sort -k2 -r \
+            | awk '{print $1}' \
+          )
+
+          for file in $files; do
+              counter=$((counter + 1))
+              if [ $counter -le $RETAIN_BACKUPS ]; then
+                continue
+              fi
+              aws s3 rm s3://$BUCKET/$file --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }};
+          done
+
+      - name: Delete temporary directory
+        uses: appleboy/ssh-action@v0.1.10
+        env:
+          TMP_DIR: ${{ env.TMP_DIR }}
+        with:
+          host: ${{ inputs.SERVER_HOSTNAME }}
+          username: ${{ inputs.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SECRET_KEY }}
+          port: ${{ inputs.SERVER_PORT }}
+          envs: TMP_DIR
+          script: |
+            rm --recursive --force $TMP_DIR
 
       - name: Success Notification
         uses: appleboy/ssh-action@v0.1.10
