@@ -114,7 +114,7 @@ jobs:
 
       - name: Create a temporary directory
         run: |
-          TMPDIR=$(mktemp --directory --tmpdir /var/tmp/ cloud-backup-pipeline-tmpfs.XXXXXX)
+          TMPDIR=$(mktemp /var/tmp/cloud-backup-pipeline.XXXXXX)
         env:
           TMP_DIR: $TMPDIR
 
