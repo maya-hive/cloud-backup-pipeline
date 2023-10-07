@@ -123,8 +123,9 @@ jobs:
           port: ${{ inputs.SERVER_PORT }}
           envs: TMPDIR
           script: |
-            tmpdir=$(mktemp /var/tmp/cloud-backup-pipeline.XXXXXX)
-            echo "tmpdir=$tmpdir" >> "$GITHUB_ENV"
+            echo "tmpdir=$( \
+            mktemp /var/tmp/cloud-backup-pipeline.XXXXXX \
+            )" >> "$GITHUB_ENV"
 
       - name: Dump MySQL database
         uses: appleboy/ssh-action@v0.1.10
