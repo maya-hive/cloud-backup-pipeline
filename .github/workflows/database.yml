@@ -112,32 +112,24 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SERVER_SECRET_KEY }}
 
-      - name: Create temporary directory
-        uses: appleboy/ssh-action@v0.1.10
-        env:
-          TMPDIR: ${{ env.tmpdir }}
-        with:
-          host: ${{ inputs.SERVER_HOSTNAME }}
-          username: ${{ inputs.SERVER_USERNAME }}
-          key: ${{ secrets.SERVER_SECRET_KEY }}
-          port: ${{ inputs.SERVER_PORT }}
-          envs: TMPDIR
-          script: |
-            echo "tmpdir=$( \
-            mktemp /var/tmp/cloud-backup-pipeline.XXXXXX \
-            )" >> "$GITHUB_ENV"
+      - name: Create a temporary directory
+        run: |
+          tmp_dir=$(ssh \
+          -o StrictHostKeyChecking=no ${{ inputs.SERVER_USERNAME }}@${{ inputs.SERVER_HOSTNAME }} \
+          "mktemp -d /var/tmp/cloud-backup-pipeline.XXXXXX")
+          echo "TMP_DIR=$tmp_dir" >> $GITHUB_ENV
 
       - name: Dump MySQL database
         uses: appleboy/ssh-action@v0.1.10
         env:
           TIMESTAMP: ${{ env.timestamp }}
-          TMPDIR: ${{ env.tmpdir }}
+          TMP_DIR: ${{ env.TMP_DIR }}
         with:
           host: ${{ inputs.SERVER_HOSTNAME }}
           username: ${{ inputs.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SECRET_KEY }}
           port: ${{ inputs.SERVER_PORT }}
-          envs: TIMESTAMP, TMPDIR
+          envs: TIMESTAMP, TMP_DIR
           script: |
             mysqldump \
             --quick \
@@ -146,14 +138,14 @@ jobs:
             --port=${{ inputs.MYSQL_PORT }} \
             --user=${{ inputs.MYSQL_USER }} \
             --password=${{ secrets.MYSQL_PASS }} \
-            --databases ${{ inputs.MYSQL_DATABASE }} > $TMPDIR/$TIMESTAMP-mysql.sql
+            --databases ${{ inputs.MYSQL_DATABASE }} > $TMP_DIR/$TIMESTAMP-mysql.sql
 
-            gzip $TMPDIR/$TIMESTAMP-mysql.sql
+            gzip $TMP_DIR/$TIMESTAMP-mysql.sql
 
       - name: Transport database
         env:
           TIMESTAMP: ${{ env.timestamp }}
-          TMPDIR: ${{ env.tmpdir }}
+          TMP_DIR: ${{ env.TMP_DIR }}
         run: |
           rsync \
           --delete \
@@ -163,8 +155,8 @@ jobs:
           --compress \
           --remove-source-files \
           --rsh "ssh -o StrictHostKeyChecking=no" \
-          ${{ inputs.SERVER_USERNAME }}@${{ inputs.SERVER_HOSTNAME }}:$TMPDIR/$TIMESTAMP-mysql.sql.gz \
-          ${{ env.tmpdir }}/${{ env.timestamp }}-mysql.sql.gz
+          ${{ inputs.SERVER_USERNAME }}@${{ inputs.SERVER_HOSTNAME }}:$TMP_DIR/$TIMESTAMP-mysql.sql.gz \
+          ${{ env.TMP_DIR }}/${{ env.timestamp }}-mysql.sql.gz
 
       - name: Configure AWS credentials
         run: |
@@ -178,7 +170,7 @@ jobs:
       - name: Upload backup to S3 bucket
         run: >
           aws s3 cp 
-          ${{ env.tmpdir }}/${{ env.timestamp }}-mysql.sql.gz
+          ${{ env.TMP_DIR }}/${{ env.timestamp }}-mysql.sql.gz
           s3://${{ inputs.AWS_S3_BUCKET }}/${{ inputs.AWS_S3_OBJECT }}/${{ env.timestamp }}-mysql.sql.gz 
           --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }}
 
