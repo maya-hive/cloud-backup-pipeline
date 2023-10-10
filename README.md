@@ -1,6 +1,6 @@
 # Cloud Backup Pipeline
 
-Uses AWS-compatible S3 storage to store application databases and file backup snapshots and retains only a specified count of backups to prevent storage overflow. The pipeline pushes metrics to a MySQL database which can be scaped for monitoring.
+Uses AWS-compatible S3 storage to store application databases and filesystem backup snapshots and retains only a specified count of backups to prevent storage overflow. The pipeline pushes metrics to a MySQL database which can be scaped for monitoring.
 
 ### Configuration Guide
 
@@ -66,7 +66,7 @@ name: Backup Application Database
 
 on:
   schedule:
-    - cron: "30 22,16 * * *" # For SL timezone add 5 hrs & 30 mins
+    - cron: "30 22,16 * * *" # SL timezone (increment +5.30)
   workflow_dispatch:
 
 jobs:
@@ -113,7 +113,7 @@ jobs:
 
   call-workflow-backup-database:
     name: Call Backup Database Workflow
-    uses: maya-hive/cloud-backup-pipeline/.github/workflows/database.yml@v2.0.0 # Specify release version
+    uses: maya-hive/cloud-backup-pipeline/.github/workflows/database.yml@v2.1.0 # Specify release version
     secrets: inherit
     needs: vars
     with:
@@ -135,7 +135,7 @@ jobs:
       NOTIFY_MYSQL_DATABASE: ${{ needs.vars.outputs.NOTIFY_MYSQL_DATABASE }}
 ```
 
-For application files backups insert the below code in `.github/workflows/backup-files.yml`:
+For application filesystem backups insert the below code in `.github/workflows/backup-filesystem.yml`:
 
 ```yaml
 ---
@@ -143,7 +143,7 @@ name: Backup Application Files
 
 on:
   schedule:
-    - cron: "30 22 * * *" # For SL timezone add 5 hrs & 30 mins
+    - cron: "30 22 * * *" # SL timezone (increment +5.30)
   workflow_dispatch:
 
 jobs:
@@ -184,9 +184,9 @@ jobs:
           echo "NOTIFY_MYSQL_USER=${{ vars.NOTIFY_MYSQL_USER }}" >> $GITHUB_OUTPUT
           echo "NOTIFY_MYSQL_DATABASE=${{ vars.NOTIFY_MYSQL_DATABASE }}" >> $GITHUB_OUTPUT
 
-  call-workflow-backup-files:
+  call-workflow-backup-filesystem:
     name: Call Backup Database Workflow
-    uses: maya-hive/cloud-backup-pipeline/.github/workflows/files.yml@v2.0.0 # Specify release version
+    uses: maya-hive/cloud-backup-pipeline/.github/workflows/filesystem.yml@v2.1.0 # Specify release version
     secrets: inherit
     needs: vars
     with:
