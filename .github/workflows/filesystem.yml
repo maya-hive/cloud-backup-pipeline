@@ -1,5 +1,5 @@
 ---
-name: Backup Application Files
+name: Backup Application Filesystem
 
 on:
   workflow_call:
