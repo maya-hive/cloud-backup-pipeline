@@ -21,7 +21,6 @@ AWS_S3_BUCKET
 AWS_S3_ENDPOINT
 AWS_S3_OBJECT
 
-MYSQL_HOST
 MYSQL_PORT
 MYSQL_USER
 MYSQL_DATABASE
@@ -83,7 +82,6 @@ jobs:
       SERVER_HOSTNAME: ${{ steps.set.outputs.SERVER_HOSTNAME }}
       SERVER_PORT: ${{ steps.set.outputs.SERVER_PORT }}
       SERVER_USERNAME: ${{ steps.set.outputs.SERVER_USERNAME }}
-      MYSQL_HOST: ${{ steps.set.outputs.MYSQL_HOST }}
       MYSQL_PORT: ${{ steps.set.outputs.MYSQL_PORT }}
       MYSQL_USER: ${{ steps.set.outputs.MYSQL_USER }}
       MYSQL_DATABASE: ${{ steps.set.outputs.MYSQL_DATABASE }}
@@ -104,7 +102,6 @@ jobs:
           echo "SERVER_HOSTNAME=${{ vars.SERVER_HOSTNAME }}" >> $GITHUB_OUTPUT
           echo "SERVER_PORT=${{ vars.SERVER_PORT }}" >> $GITHUB_OUTPUT
           echo "SERVER_USERNAME=${{ vars.SERVER_USERNAME }}" >> $GITHUB_OUTPUT
-          echo "MYSQL_HOST=${{ vars.MYSQL_HOST }}" >> $GITHUB_OUTPUT
           echo "MYSQL_PORT=${{ vars.MYSQL_PORT }}" >> $GITHUB_OUTPUT
           echo "MYSQL_USER=${{ vars.MYSQL_USER }}" >> $GITHUB_OUTPUT
           echo "MYSQL_DATABASE=${{ vars.MYSQL_DATABASE }}" >> $GITHUB_OUTPUT
@@ -128,7 +125,6 @@ jobs:
       SERVER_PORT: ${{ needs.vars.outputs.SERVER_PORT }}
       SERVER_HOSTNAME: ${{ needs.vars.outputs.SERVER_HOSTNAME }}
       SERVER_USERNAME: ${{ needs.vars.outputs.SERVER_USERNAME }}
-      MYSQL_HOST: ${{ needs.vars.outputs.MYSQL_HOST }}
       MYSQL_PORT: ${{ needs.vars.outputs.MYSQL_PORT }}
       MYSQL_USER: ${{ needs.vars.outputs.MYSQL_USER }}
       MYSQL_DATABASE: ${{ needs.vars.outputs.MYSQL_DATABASE }}

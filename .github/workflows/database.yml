@@ -36,10 +36,6 @@ on:
         type: string
         required: true
 
-      MYSQL_HOST:
-        type: string
-        required: true
-
       MYSQL_PORT:
         type: string
         required: true
@@ -130,7 +126,7 @@ jobs:
             mysqldump \
             --quick \
             --single-transaction \
-            --host=${{ inputs.MYSQL_HOST }} \
+            --host=localhost \
             --port=${{ inputs.MYSQL_PORT }} \
             --user=${{ inputs.MYSQL_USER }} \
             --password=${{ secrets.MYSQL_PASS }} \
