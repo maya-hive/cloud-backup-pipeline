@@ -139,7 +139,7 @@ For application filesystem backups insert the below code in `.github/workflows/b
 
 ```yaml
 ---
-name: Backup Application Files
+name: Backup Application File System
 
 on:
   schedule:
