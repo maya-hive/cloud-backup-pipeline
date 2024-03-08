@@ -8,7 +8,7 @@ on:
         type: string
         required: true
 
-      FILE_BACKUP_APPLICATION_PATH:
+      APPLICATION_PATH:
         type: string
         required: true
 
@@ -115,8 +115,8 @@ jobs:
           port: ${{ inputs.SERVER_PORT }}
           envs: TIMESTAMP, TMP_DIR
           script: |
-            export {{ env.FILE_BACKUP_APPLICATION_PATH }}=${{ inputs.FILE_BACKUP_APPLICATION_PATH }}
-            cd ${{ inputs.FILE_BACKUP_APPLICATION_PATH }} && zip --recurse-paths $TMP_DIR/$TIMESTAMP-files.zip .
+            export {{ env.APPLICATION_PATH }}=${{ inputs.APPLICATION_PATH }}
+            cd ${{ inputs.APPLICATION_PATH }} && zip --recurse-paths $TMP_DIR/$TIMESTAMP-files.zip .
 
       - name: Transport files
         env:

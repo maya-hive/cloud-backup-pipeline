@@ -29,7 +29,7 @@ SERVER_HOSTNAME
 SERVER_PORT
 SERVER_USERNAME
 
-FILE_BACKUP_APPLICATION_PATH
+APPLICATION_PATH
 FILE_BACKUP_RETAIN
 DATABASE_BACKUP_RETAIN
 
@@ -139,7 +139,7 @@ For application filesystem backups insert the below code in `.github/workflows/b
 
 ```yaml
 ---
-name: Backup Application Files
+name: Backup Application File System
 
 on:
   schedule:
@@ -152,7 +152,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       FILE_BACKUP_RETAIN: ${{ steps.set.outputs.FILE_BACKUP_RETAIN }}
-      FILE_BACKUP_APPLICATION_PATH: ${{ steps.set.outputs.FILE_BACKUP_APPLICATION_PATH }}
+      APPLICATION_PATH: ${{ steps.set.outputs.APPLICATION_PATH }}
       AWS_REGION: ${{ steps.set.outputs.AWS_REGION }}
       AWS_S3_ENDPOINT: ${{ steps.set.outputs.AWS_S3_ENDPOINT }}
       AWS_S3_BUCKET: ${{ steps.set.outputs.AWS_S3_BUCKET }}
@@ -170,7 +170,7 @@ jobs:
         id: set
         run: |
           echo "FILE_BACKUP_RETAIN=${{ vars.FILE_BACKUP_RETAIN }}" >> $GITHUB_OUTPUT
-          echo "FILE_BACKUP_APPLICATION_PATH=${{ vars.FILE_BACKUP_APPLICATION_PATH }}" >> $GITHUB_OUTPUT
+          echo "APPLICATION_PATH=${{ vars.APPLICATION_PATH }}" >> $GITHUB_OUTPUT
           echo "AWS_REGION=${{ vars.AWS_REGION }}" >> $GITHUB_OUTPUT
           echo "AWS_S3_ENDPOINT=${{ vars.AWS_S3_ENDPOINT }}" >> $GITHUB_OUTPUT
           echo "AWS_S3_BUCKET=${{ vars.AWS_S3_BUCKET }}" >> $GITHUB_OUTPUT
@@ -191,7 +191,7 @@ jobs:
     needs: vars
     with:
       FILE_BACKUP_RETAIN: ${{ needs.vars.outputs.FILE_BACKUP_RETAIN }}
-      FILE_BACKUP_APPLICATION_PATH: ${{ needs.vars.outputs.FILE_BACKUP_APPLICATION_PATH }}
+      APPLICATION_PATH: ${{ needs.vars.outputs.APPLICATION_PATH }}
       AWS_REGION: ${{ needs.vars.outputs.AWS_REGION }}
       AWS_S3_BUCKET: ${{ needs.vars.outputs.AWS_S3_BUCKET }}
       AWS_S3_OBJECT: ${{ needs.vars.outputs.AWS_S3_OBJECT }}
