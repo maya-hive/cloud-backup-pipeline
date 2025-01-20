@@ -80,7 +80,7 @@ jobs:
 
       - name: Install AWS CLI
         run: |
-          pip install awscli
+          pip install awscli==1.36.0
 
       - name: Manually Set SSH key
         if: ${{ env.ACT }}
