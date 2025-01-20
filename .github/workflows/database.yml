@@ -162,32 +162,31 @@ jobs:
           echo "region = ${{ secrets.AWS_REGION }}" >> ~/.aws/config
 
       - name: Upload backup to S3 bucket
-        run: >
-          aws s3 cp 
-          /srv/rsync/backups/${{ env.timestamp }}-mysql.sql.gz
-          s3://${{ inputs.AWS_S3_BUCKET }}/${{ inputs.AWS_S3_OBJECT }}/${{ env.timestamp }}-mysql.sql.gz 
+        run: |
+          aws s3 cp /srv/rsync/backups/${{ env.timestamp }}-mysql.sql.gz \
+          s3://${{ inputs.AWS_S3_BUCKET }}/${{ inputs.AWS_S3_OBJECT }}/${{ env.timestamp }}-mysql.sql.gz \
           --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }}
 
       - name: Delete excess backups in S3 bucket
-        run: >
+        run: |
           counter=0
 
           files=$(aws s3api list-objects \
             --bucket "${{ inputs.AWS_S3_BUCKET }}" \
             --prefix "${{ inputs.AWS_S3_OBJECT }}/" \
-            --query 'Contents[?ends_with(Key, `'-mysql.sql.gz'`)].[Key, LastModified]' \
+            --query "Contents[?ends_with(Key, '-mysql.sql.gz')].[Key, LastModified]" \
             --output text \
-            --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }} \
+            --endpoint-url "${{ inputs.AWS_S3_ENDPOINT }}" \
             | sort -k2 -r \
             | awk '{print $1}' \
           )
 
           for file in $files; do
-              counter=$((counter + 1))
-              if [ $counter -le ${{ inputs.DATABASE_BACKUP_RETAIN }} ]; then
-                continue
-              fi
-              aws s3 rm s3://${{ inputs.AWS_S3_BUCKET }}/$file --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }};
+            counter=$((counter + 1))
+            if [ $counter -le "${{ inputs.DATABASE_BACKUP_RETAIN }}" ]; then
+              continue
+            fi
+            aws s3 rm "s3://${{ inputs.AWS_S3_BUCKET }}/$file" --endpoint-url "${{ inputs.AWS_S3_ENDPOINT }}";
           done
 
       - name: Delete temporary directory
