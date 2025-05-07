@@ -102,7 +102,7 @@ jobs:
       - name: Backup S3 and Compress Files
         run: |
           TMP_DIR="/tmp/s3-backup-${{ env.timestamp }}"
-          ZIP_FILE="/tmp/${{ env.timestamp }}-files.zip"
+          ZIP_FILE="/tmp/${{ env.timestamp }}-s3.zip"
           mkdir -p "$TMP_DIR"
           aws s3 cp --recursive s3://${{ inputs.APPLICATION_S3_BUCKET_NAME }} "$TMP_DIR"
           zip --recurse-paths "$ZIP_FILE" "$TMP_DIR"
@@ -119,8 +119,8 @@ jobs:
       - name: Upload backup to S3 bucket
         run: >
           aws s3 cp
-          /tmp/${{ env.timestamp }}-files.zip
-          s3://${{ inputs.AWS_S3_BUCKET }}/${{ inputs.AWS_S3_OBJECT }}/${{ env.timestamp }}-files.zip
+          /tmp/${{ env.timestamp }}-s3.zip
+          s3://${{ inputs.AWS_S3_BUCKET }}/${{ inputs.AWS_S3_OBJECT }}/${{ env.timestamp }}-s3.zip
           --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }}
 
       - name: Delete excess backups in S3 bucket
@@ -130,7 +130,7 @@ jobs:
           files=$(aws s3api list-objects \
             --bucket "${{ inputs.AWS_S3_BUCKET }}" \
             --prefix "${{ inputs.AWS_S3_OBJECT }}/" \
-            --query 'Contents[?ends_with(Key, `'-files.zip'`)].[Key, LastModified]' \
+            --query 'Contents[?ends_with(Key, `'-s3.zip'`)].[Key, LastModified]' \
             --output text \
             --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }} \
             | sort -k2 -r \
@@ -184,7 +184,7 @@ jobs:
               '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}', \
               '${{ inputs.AWS_S3_BUCKET }}', \
               '${{ inputs.AWS_S3_OBJECT }}', \
-              '${{ env.timestamp }}-files.zip' \
+              '${{ env.timestamp }}-s3.zip' \
             );"
 
       - name: Failure Notification
@@ -213,5 +213,5 @@ jobs:
               '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}', \
               '${{ inputs.AWS_S3_BUCKET }}', \
               '${{ inputs.AWS_S3_OBJECT }}', \
-              '${{ env.timestamp }}-files.zip' \
+              '${{ env.timestamp }}-s3.zip' \
             );"
