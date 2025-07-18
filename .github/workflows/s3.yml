@@ -16,10 +16,6 @@ on:
         type: string
         required: true
 
-      APPLICATION_AWS_S3_OBJECT:
-        type: string
-        required: true
-
       APPLICATION_AWS_S3_ENDPOINT:
         type: string
         required: true
