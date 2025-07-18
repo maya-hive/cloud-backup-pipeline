@@ -104,7 +104,7 @@ jobs:
           TMP_DIR="/tmp/s3-backup-${{ env.timestamp }}"
           ZIP_FILE="/tmp/${{ env.timestamp }}-s3.zip"
           mkdir -p "$TMP_DIR"
-          aws s3 cp --recursive s3://${{ inputs.APPLICATION_S3_BUCKET_NAME }} "$TMP_DIR"
+          aws s3 cp --recursive s3://${{ inputs.APPLICATION_AWS_S3_BUCKET }} "$TMP_DIR" --endpoint-url ${{ inputs.APPLICATION_AWS_S3_ENDPOINT }}
           zip --recurse-paths "$ZIP_FILE" "$TMP_DIR"
 
       - name: Configure AWS credentials
