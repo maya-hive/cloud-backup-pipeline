@@ -8,10 +8,6 @@ on:
         type: string
         required: true
 
-      APPLICATION_PATH:
-        type: string
-        required: true
-
       APPLICATION_AWS_REGION:
         type: string
         required: true
