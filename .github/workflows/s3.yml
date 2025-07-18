@@ -36,6 +36,14 @@ on:
         type: string
         required: true
 
+      SERVER_HOSTNAME:
+        type: string
+        required: true
+
+      SERVER_PORT:
+        type: string
+        required: true
+
       SERVER_USERNAME:
         type: string
         required: true
