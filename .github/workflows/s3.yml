@@ -85,6 +85,7 @@ jobs:
         run: |
           apt-get update --assume-yes
           apt-get install rsync --assume-yes
+          apt-get install zip --assume-yes
 
       - name: Install AWS CLI
         run: |
