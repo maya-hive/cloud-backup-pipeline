@@ -180,7 +180,7 @@ jobs:
             --execute "INSERT INTO tasks (name, type, status, url, bucket, object, path) \
             VALUES ( \
               '${{ github.repository }}', \
-              's3', \
+              'fs', \
               1, \
               '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}', \
               '${{ inputs.AWS_S3_BUCKET }}', \
@@ -209,7 +209,7 @@ jobs:
             --execute "INSERT INTO tasks (name, type, status, url, bucket, object, path) \
             VALUES ( \
               '${{ github.repository }}', \
-              's3', \
+              'fs', \
               0, \
               '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}', \
               '${{ inputs.AWS_S3_BUCKET }}', \
