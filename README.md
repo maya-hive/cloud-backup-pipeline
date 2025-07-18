@@ -206,6 +206,83 @@ jobs:
       NOTIFY_MYSQL_DATABASE: ${{ needs.vars.outputs.NOTIFY_MYSQL_DATABASE }}
 ```
 
+For application s3 bucket backups insert the below code in `.github/workflows/backup-s3.yml`:
+
+```yaml
+---
+name: Backup Application S3 Bucket
+
+on:
+  schedule:
+    - cron: "30 22 * * *" # SL timezone (increment +5.30)
+  workflow_dispatch:
+
+jobs:
+  vars:
+    name: Setup Environment Vars
+    runs-on: ubuntu-latest
+    outputs:
+      S3_BACKUP_RETAIN: ${{ steps.set.outputs.S3_BACKUP_RETAIN }}
+      AWS_REGION: ${{ steps.set.outputs.AWS_REGION }}
+      AWS_S3_ENDPOINT: ${{ steps.set.outputs.AWS_S3_ENDPOINT }}
+      AWS_S3_BUCKET: ${{ steps.set.outputs.AWS_S3_BUCKET }}
+      AWS_S3_OBJECT: ${{ steps.set.outputs.AWS_S3_OBJECT }}
+      SERVER_HOSTNAME: ${{ steps.set.outputs.SERVER_HOSTNAME }}
+      SERVER_PORT: ${{ steps.set.outputs.SERVER_PORT }}
+      SERVER_USERNAME: ${{ steps.set.outputs.SERVER_USERNAME }}
+      APPLICATION_AWS_REGION: ${{ steps.set.outputs.APPLICATION_AWS_REGION }}
+      APPLICATION_AWS_S3_ENDPOINT: ${{ steps.set.outputs.APPLICATION_AWS_S3_ENDPOINT }}
+      APPLICATION_AWS_S3_BUCKET: ${{ steps.set.outputs.APPLICATION_AWS_S3_BUCKET }}
+      NOTIFY_SERVER_HOSTNAME: ${{ steps.set.outputs.NOTIFY_SERVER_HOSTNAME }}
+      NOTIFY_SERVER_PORT: ${{ steps.set.outputs.NOTIFY_SERVER_PORT }}
+      NOTIFY_SERVER_USERNAME: ${{ steps.set.outputs.NOTIFY_SERVER_USERNAME }}
+      NOTIFY_MYSQL_USER: ${{ steps.set.outputs.NOTIFY_MYSQL_USER }}
+      NOTIFY_MYSQL_DATABASE: ${{ steps.set.outputs.NOTIFY_MYSQL_DATABASE }}
+    steps:
+      - name: Assign Vars
+        id: set
+        run: |
+          echo "S3_BACKUP_RETAIN=${{ vars.S3_BACKUP_RETAIN }}" >> $GITHUB_OUTPUT
+          echo "AWS_REGION=${{ vars.AWS_REGION }}" >> $GITHUB_OUTPUT
+          echo "AWS_S3_ENDPOINT=${{ vars.AWS_S3_ENDPOINT }}" >> $GITHUB_OUTPUT
+          echo "AWS_S3_BUCKET=${{ vars.AWS_S3_BUCKET }}" >> $GITHUB_OUTPUT
+          echo "AWS_S3_OBJECT=${{ vars.AWS_S3_OBJECT }}" >> $GITHUB_OUTPUT
+          echo "SERVER_HOSTNAME=${{ vars.SERVER_HOSTNAME }}" >> $GITHUB_OUTPUT
+          echo "SERVER_PORT=${{ vars.SERVER_PORT }}" >> $GITHUB_OUTPUT
+          echo "SERVER_USERNAME=${{ vars.SERVER_USERNAME }}" >> $GITHUB_OUTPUT
+          echo "APPLICATION_AWS_REGION=${{ vars.APPLICATION_AWS_REGION }}" >> $GITHUB_OUTPUT
+          echo "APPLICATION_AWS_S3_ENDPOINT=${{ vars.APPLICATION_AWS_S3_ENDPOINT }}" >> $GITHUB_OUTPUT
+          echo "APPLICATION_AWS_S3_BUCKET=${{ vars.APPLICATION_AWS_S3_BUCKET }}" >> $GITHUB_OUTPUT
+          echo "NOTIFY_SERVER_HOSTNAME=${{ vars.NOTIFY_SERVER_HOSTNAME }}" >> $GITHUB_OUTPUT
+          echo "NOTIFY_SERVER_PORT=${{ vars.NOTIFY_SERVER_PORT }}" >> $GITHUB_OUTPUT
+          echo "NOTIFY_SERVER_USERNAME=${{ vars.NOTIFY_SERVER_USERNAME }}" >> $GITHUB_OUTPUT
+          echo "NOTIFY_MYSQL_USER=${{ vars.NOTIFY_MYSQL_USER }}" >> $GITHUB_OUTPUT
+          echo "NOTIFY_MYSQL_DATABASE=${{ vars.NOTIFY_MYSQL_DATABASE }}" >> $GITHUB_OUTPUT
+
+  call-workflow-backup-s3:
+    name: Call Backup S3 Workflow
+    uses: maya-hive/cloud-backup-pipeline/.github/workflows/s3.yml@v2.2.0 # Specify release version
+    secrets: inherit
+    needs: vars
+    with:
+      S3_BACKUP_RETAIN: ${{ needs.vars.outputs.S3_BACKUP_RETAIN }}
+      AWS_REGION: ${{ needs.vars.outputs.AWS_REGION }}
+      AWS_S3_BUCKET: ${{ needs.vars.outputs.AWS_S3_BUCKET }}
+      AWS_S3_OBJECT: ${{ needs.vars.outputs.AWS_S3_OBJECT }}
+      AWS_S3_ENDPOINT: ${{ needs.vars.outputs.AWS_S3_ENDPOINT }}
+      SERVER_PORT: ${{ needs.vars.outputs.SERVER_PORT }}
+      SERVER_HOSTNAME: ${{ needs.vars.outputs.SERVER_HOSTNAME }}
+      SERVER_USERNAME: ${{ needs.vars.outputs.SERVER_USERNAME }}
+      APPLICATION_AWS_REGION: ${{ needs.vars.outputs.APPLICATION_AWS_REGION }}
+      APPLICATION_AWS_S3_BUCKET: ${{ needs.vars.outputs.APPLICATION_AWS_S3_BUCKET }}
+      APPLICATION_AWS_S3_ENDPOINT: ${{ needs.vars.outputs.APPLICATION_AWS_S3_ENDPOINT }}
+      NOTIFY_SERVER_PORT: ${{ needs.vars.outputs.NOTIFY_SERVER_PORT }}
+      NOTIFY_SERVER_HOSTNAME: ${{ needs.vars.outputs.NOTIFY_SERVER_HOSTNAME }}
+      NOTIFY_SERVER_USERNAME: ${{ needs.vars.outputs.NOTIFY_SERVER_USERNAME }}
+      NOTIFY_MYSQL_USER: ${{ needs.vars.outputs.NOTIFY_MYSQL_USER }}
+      NOTIFY_MYSQL_DATABASE: ${{ needs.vars.outputs.NOTIFY_MYSQL_DATABASE }}
+```
+
 ### Notifications
 
 The pipeline will push workflow metrics of each run to a remote MySQL instance. The database schema should be as follows:
