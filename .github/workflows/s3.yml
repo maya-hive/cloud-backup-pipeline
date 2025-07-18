@@ -1,0 +1,218 @@
+---
+name: Backup Application S3 Bucket
+
+on:
+  workflow_call:
+    inputs:
+      S3_BACKUP_RETAIN:
+        type: string
+        required: true
+
+      APPLICATION_AWS_REGION:
+        type: string
+        required: true
+
+      APPLICATION_AWS_S3_BUCKET:
+        type: string
+        required: true
+
+      APPLICATION_AWS_S3_ENDPOINT:
+        type: string
+        required: true
+
+      AWS_S3_BUCKET:
+        type: string
+        required: true
+
+      AWS_S3_OBJECT:
+        type: string
+        required: true
+
+      AWS_S3_ENDPOINT:
+        type: string
+        required: true
+
+      AWS_REGION:
+        type: string
+        required: true
+
+      SERVER_HOSTNAME:
+        type: string
+        required: true
+
+      SERVER_PORT:
+        type: string
+        required: true
+
+      SERVER_USERNAME:
+        type: string
+        required: true
+
+      NOTIFY_SERVER_HOSTNAME:
+        type: string
+        required: true
+
+      NOTIFY_SERVER_PORT:
+        type: string
+        required: true
+
+      NOTIFY_SERVER_USERNAME:
+        type: string
+        required: true
+
+      NOTIFY_MYSQL_USER:
+        type: string
+        required: true
+
+      NOTIFY_MYSQL_DATABASE:
+        type: string
+        required: true
+
+jobs:
+  backup:
+    name: Backup S3 Bucket
+    runs-on: ubuntu-22.04
+    container: python:3.8
+    steps:
+      - name: Set runtime variables
+        id: vars
+        run: |
+          echo "timestamp=$(date -d@"$(( \
+          $(date +%s) + (5 * 3600) + (30 * 60) ))" \
+          +'%d-%m-%Y-%H%M')" >> "$GITHUB_ENV"
+
+      - name: Install system packages
+        run: |
+          apt-get update --assume-yes
+          apt-get install rsync --assume-yes
+          apt-get install zip --assume-yes
+
+      - name: Install AWS CLI
+        run: |
+          pip install awscli==1.36.0
+
+      - name: Configure Application AWS credentials
+        run: |
+          mkdir --parents ~/.aws
+          echo "[default]" > ~/.aws/credentials
+          echo "aws_access_key_id = ${{ secrets.APPLICATION_AWS_ACCESS_KEY_ID }}" >> ~/.aws/credentials
+          echo "aws_secret_access_key = ${{ secrets.APPLICATION_AWS_SECRET_ACCESS_KEY }}" >> ~/.aws/credentials
+          echo "[default]" > ~/.aws/config
+          echo "region = ${{ inputs.APPLICATION_AWS_REGION }}" >> ~/.aws/config
+
+      - name: Backup S3 and Compress Files
+        run: |
+          TMP_DIR="/tmp/s3-backup-${{ env.timestamp }}"
+          ZIP_FILE="/tmp/${{ env.timestamp }}-s3.zip"
+          mkdir -p "$TMP_DIR"
+          aws s3 cp --recursive s3://${{ inputs.APPLICATION_AWS_S3_BUCKET }} "$TMP_DIR" --endpoint-url ${{ inputs.APPLICATION_AWS_S3_ENDPOINT }}
+          zip --recurse-paths "$ZIP_FILE" "$TMP_DIR"
+
+      - name: Configure AWS credentials
+        run: |
+          mkdir --parents ~/.aws
+          echo "[default]" > ~/.aws/credentials
+          echo "aws_access_key_id = ${{ secrets.AWS_ACCESS_KEY_ID }}" >> ~/.aws/credentials
+          echo "aws_secret_access_key = ${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> ~/.aws/credentials
+          echo "[default]" > ~/.aws/config
+          echo "region = ${{ inputs.AWS_REGION }}" >> ~/.aws/config
+
+      - name: Upload backup to S3 bucket
+        run: >
+          aws s3 cp
+          /tmp/${{ env.timestamp }}-s3.zip
+          s3://${{ inputs.AWS_S3_BUCKET }}/${{ inputs.AWS_S3_OBJECT }}/${{ env.timestamp }}-s3.zip
+          --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }}
+
+      - name: Delete excess backups in S3 bucket
+        run: >
+          counter=0
+
+          files=$(aws s3api list-objects \
+            --bucket "${{ inputs.AWS_S3_BUCKET }}" \
+            --prefix "${{ inputs.AWS_S3_OBJECT }}/" \
+            --query 'Contents[?ends_with(Key, `'-s3.zip'`)].[Key, LastModified]' \
+            --output text \
+            --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }} \
+            | sort -k2 -r \
+            | awk '{print $1}' \
+          )
+
+          for file in $files; do
+              counter=$((counter + 1))
+              if [ $counter -le ${{ inputs.S3_BACKUP_RETAIN }} ]; then
+                continue
+              fi
+              aws s3 rm s3://${{ inputs.AWS_S3_BUCKET }}/$file --endpoint-url ${{ inputs.AWS_S3_ENDPOINT }};
+          done
+
+      - name: Delete temporary directory
+        uses: appleboy/ssh-action@v0.1.10
+        env:
+          TMP_DIR: ${{ env.TMP_DIR }}
+        with:
+          host: ${{ inputs.SERVER_HOSTNAME }}
+          username: ${{ inputs.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SECRET_KEY }}
+          port: ${{ inputs.SERVER_PORT }}
+          envs: TMP_DIR
+          script: |
+            rm --recursive --force $TMP_DIR
+
+      - name: Success Notification
+        uses: appleboy/ssh-action@v0.1.10
+        if: success()
+        env:
+          TIMESTAMP: ${{ env.timestamp }}
+        with:
+          host: ${{ inputs.NOTIFY_SERVER_HOSTNAME }}
+          username: ${{ inputs.NOTIFY_SERVER_USERNAME }}
+          key: ${{ secrets.NOTIFY_SERVER_SECRET_KEY }}
+          port: ${{ inputs.NOTIFY_SERVER_PORT }}
+          envs: TIMESTAMP
+          script: |
+            mysql \
+            --host localhost \
+            --port 3306 \
+            --user ${{ inputs.NOTIFY_MYSQL_USER }} \
+            -p${{ secrets.NOTIFY_MYSQL_PASS }} \
+            ${{ inputs.NOTIFY_MYSQL_DATABASE }} \
+            --execute "INSERT INTO tasks (name, type, status, url, bucket, object, path) \
+            VALUES ( \
+              '${{ github.repository }}', \
+              'fs', \
+              1, \
+              '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}', \
+              '${{ inputs.AWS_S3_BUCKET }}', \
+              '${{ inputs.AWS_S3_OBJECT }}', \
+              '${{ env.timestamp }}-s3.zip' \
+            );"
+
+      - name: Failure Notification
+        uses: appleboy/ssh-action@v0.1.10
+        if: failure()
+        env:
+          TIMESTAMP: ${{ env.timestamp }}
+        with:
+          host: ${{ inputs.NOTIFY_SERVER_HOSTNAME }}
+          username: ${{ inputs.NOTIFY_SERVER_USERNAME }}
+          key: ${{ secrets.NOTIFY_SERVER_SECRET_KEY }}
+          port: ${{ inputs.NOTIFY_SERVER_PORT }}
+          envs: TIMESTAMP
+          script: |
+            mysql \
+            --host localhost \
+            --port 3306 \
+            --user ${{ inputs.NOTIFY_MYSQL_USER }} \
+            -p${{ secrets.NOTIFY_MYSQL_PASS }} \
+            ${{ inputs.NOTIFY_MYSQL_DATABASE }} \
+            --execute "INSERT INTO tasks (name, type, status, url, bucket, object, path) \
+            VALUES ( \
+              '${{ github.repository }}', \
+              'fs', \
+              0, \
+              '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}', \
+              '${{ inputs.AWS_S3_BUCKET }}', \
+              '${{ inputs.AWS_S3_OBJECT }}', \
+              '${{ env.timestamp }}-s3.zip' \
+            );"
